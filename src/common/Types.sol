@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-struct TransactionData {
+struct TxData {
 	address from; //msg.sender
 	address to;
 	uint256 value;
