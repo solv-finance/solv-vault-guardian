@@ -2,11 +2,10 @@
 
 pragma solidity 0.8.21;
 
-import {TransferAuthorizer} from "../common/TransferAuthorizer.sol";
+import {TransferGuard} from "../common/TransferGuard.sol";
 
 
-
-contract CEXRechargeAuthorizer is TransferAuthorizer {
+contract CEXRechargeGuard is TransferGuard {
 	constructor(TokenReceiver[] memory receivers_) {
 		_addTokenReceivers(receivers_);
 	}

@@ -8,20 +8,22 @@ import "../src/SolvSafeguard.sol";
 
 abstract contract SafeguardBaseTest is Test {
     address payable public constant safeAccount =
-        payable(0x01c106FadEbBB2D32c2EAcAB3F5874B25B009cbb);
-    address private msgSender;
-    uint256 private privKey;
-    SolvSafeguard private safeguard;
+    payable(0x01c106FadEbBB2D32c2EAcAB3F5874B25B009cbb);
+    address internal _msgSender;
+    uint256 internal _privKey;
+    SolvSafeguard internal _safeguard;
 
-    function setUp() public {
-        safeguard = new SolvSafeguard(address(0), address(0), address(0), address(0));
-        privKey = vm.envUint("PRIVATE_KEY");
-        msgSender = vm.addr(privKey);
+    function setUp() virtual public {
+        _privKey = vm.envUint("PRIVATE_KEY");
+        _msgSender = vm.addr(_privKey);
+    }
+
+    function _setSafeGuard(address guard_) internal {
         bytes memory data = abi.encodeWithSelector(
             bytes4(keccak256("setGuard(address)")),
-            address(safeguard)
+            guard_
         );
-        vm.startPrank(msgSender);
+        vm.startPrank(_msgSender);
         _callExecTransaction(safeAccount, data);
         vm.stopPrank();
     }
@@ -45,7 +47,7 @@ abstract contract SafeguardBaseTest is Test {
                 nonce
             );
         bytes32 txHash = keccak256(txHashData);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, txHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_privKey, txHash);
         return bytes.concat(r, s, bytes1(v));
     }
 

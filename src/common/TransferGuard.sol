@@ -2,11 +2,10 @@
 
 pragma solidity 0.8.21;
 
-import {BaseAuthorizer} from "../common/BaseAuthorizer.sol";
+import {BaseGuard} from "../common/BaseGuard.sol";
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
-import {TxData} from "../common/Types.sol";
 
-contract TransferAuthorizer is BaseAuthorizer {
+contract TransferGuard is BaseGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
 	event TokenAdded(address indexed token);
@@ -48,7 +47,7 @@ contract TransferAuthorizer is BaseAuthorizer {
         return _tokenToReceivers[token].values();
     }
 
-	function _checkTransaction( TxData calldata txData ) internal virtual override view returns (bool) {
+	function _checkTransaction( TxData calldata txData ) internal virtual override returns (CheckResult memory result) {
 		if (
             txData.data.length >= 68 && // 4 + 32 + 32
             bytes4(txData.data[0:4]) == TRANSFER_SELECTOR &&
@@ -58,17 +57,20 @@ contract TransferAuthorizer is BaseAuthorizer {
             (address recipient /*uint256 amount*/, ) = abi.decode(txData.data[4:], (address, uint256));
             address token = txData.to;
             if (_tokenToReceivers[token].contains(recipient)) {
-				return true;
+				result.success = true;
+				return result;
             }
         } else if (txData.data.length == 0 && txData.value > 0) {
             // Contract call not allowed and token in white list.
             address recipient = txData.to;
             if (_tokenToReceivers[ETH].contains(recipient)) {
-				return true;
+				result.success = true;
+				return result;
             }
         }
-
-		return false;
+		result.success = false;
+		result.message = "TransferGuard: transfer not allowed";
+		return result;
 	}
 
 }
