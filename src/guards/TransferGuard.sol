@@ -25,6 +25,10 @@ contract TransferGuard is BaseGuard {
         address token;
         address receiver;
     }
+
+	constructor(TokenReceiver[] memory receivers_) {
+		_addTokenReceivers(receivers_);
+	}
 	
 	function _addTokenReceivers(TokenReceiver[] memory tokenReceivers) internal {
 		for (uint256 i = 0; i < tokenReceivers.length; i++) {
@@ -59,18 +63,28 @@ contract TransferGuard is BaseGuard {
             if (_tokenToReceivers[token].contains(recipient)) {
 				result.success = true;
 				return result;
-            }
+            } else {
+				result.success = false;
+				result.message = "TransferGuard: transfer not allowed";
+				return result;
+			}
         } else if (txData.data.length == 0 && txData.value > 0) {
             // Contract call not allowed and token in white list.
             address recipient = txData.to;
             if (_tokenToReceivers[ETH].contains(recipient)) {
 				result.success = true;
 				return result;
-            }
-        }
-		result.success = false;
-		result.message = "TransferGuard: transfer not allowed";
-		return result;
+            } else {
+				result.success = false;
+				result.message = "TransferGuard: transfer not allowed";
+				return result;
+			}
+        } else {
+			//other function ignore
+			result.success = true;
+			result.message = "TransferGuard: other function ignore";
+			return result;
+		}
 	}
 
 }

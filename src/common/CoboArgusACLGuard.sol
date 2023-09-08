@@ -33,7 +33,7 @@ interface CoboArgusACL {
     ) external returns (AuthorizerReturnData memory authData);
 }
 
-contract StrategyGuard is BaseGuard {
+contract CoboArgusACLGuard  {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
 	event AddStrategyACL(address indexed strategy, address indexed acl);
@@ -60,9 +60,9 @@ contract StrategyGuard is BaseGuard {
 		}
 	}
 
-	function _checkTransaction(
-		TxData calldata txData
-	) internal virtual override returns (CheckResult memory result)  {
+	function _executeACL(
+		BaseGuard.TxData calldata txData
+	) internal virtual returns (BaseGuard.CheckResult memory result)  {
 		address strategy = txData.to;
 		for (uint i = 0; i < _coboArgusACLs[strategy].length(); i++) {
 			address acl = _coboArgusACLs[strategy].at(i);
