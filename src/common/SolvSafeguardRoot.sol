@@ -2,35 +2,50 @@
 pragma solidity 0.8.21;
 
 import "forge-std/console.sol";
-import "openzeppelin-contracts-upgradeable/access/Ownableupgradeable.sol";
-import "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {Guard} from "safe-contracts/base/GuardManager.sol";
 import {GnosisSafeL2, Enum} from "safe-contracts/GnosisSafeL2.sol";
 import {BaseGuard} from "./BaseGuard.sol";
 
 
-abstract contract SolvSafeguardRoot is Guard, OwnableUpgradeable, UUPSUpgradeable {
+abstract contract SolvSafeguardRoot is Guard, Ownable {
+    event SolvGuardsSet(address[]);
+    event SolvGuardsSetForbidden();
 
-    address public safeAccount;
-    
-    address[] public guards;
+    address public immutable safeAccount;
+    address[] public  guards;
+    bool public allowSetSolvGuards;
 
 	fallback() external {
         // We don't revert on fallback to avoid issues in case of a Safe upgrade
         // E.g. The expected check method might change and then the Safe would be locked.
     }
 
-    function __SolvSafeguardRootGuard_init(address safeAccount_) internal {
+    constructor(address safeAccount_) Ownable() {
         safeAccount = safeAccount_;
-        __UUPSUpgradeable_init();
-        __Ownable_init();
+        allowSetSolvGuards = true;
     }
 
-    function _setGuards(address[] memory guards_) internal {
-        for (uint256 i = 0; i < guards_.length; i++) {
-            require(guards_[i] != address(0), "SolvSafeguard: guard is zero address");
-        }
+    function _setSolvGuards(address[] memory guards_) internal {
         guards = guards_;
+        emit SolvGuardsSet(guards_);
+    }
+
+    function setSolvGuards(address[] memory guards_) external onlyOwner {
+        if (allowSetSolvGuards) {
+		    _setSolvGuards(guards_);
+        } else {
+            revert("not allowed");
+        }
+    }
+    
+    function forbidSetSolvGuards() external onlyOwner {
+        allowSetSolvGuards = false;
+        emit SolvGuardsSetForbidden();
+    }
+
+    function getSolvGuards() external view returns (address[] memory) {
+        return guards;
     }
 
     function checkTransaction(
@@ -58,9 +73,11 @@ abstract contract SolvSafeguardRoot is Guard, OwnableUpgradeable, UUPSUpgradeabl
         });
 
         for (uint256 i = 0; i < guards.length; i++) {
-            BaseGuard.CheckResult memory result = BaseGuard(guards[i]).checkTransaction(txData);
-            if (!result.success) {
-                revert(result.message);
+            if (guards[i] != address(0)) {
+                BaseGuard.CheckResult memory result = BaseGuard(guards[i]).checkTransaction(txData);
+                if (!result.success) {
+                    revert(result.message);
+                }
             }
         }
 	}
@@ -70,5 +87,5 @@ abstract contract SolvSafeguardRoot is Guard, OwnableUpgradeable, UUPSUpgradeabl
         bool success
     ) external override {}
 
-    function _authorizeUpgrade(address newImplementation) internal virtual override {}    
+    
 }

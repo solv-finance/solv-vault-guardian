@@ -2,22 +2,26 @@
 
 pragma solidity 0.8.21;
 
-import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
+import "forge-std/console.sol";
+import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {FunctionGuard} from "../common/FunctionGuard.sol";
 import {CoboArgusAdminGuard} from "../common/CoboArgusAdminGuard.sol";
-import {CoboArgusACLGuard} from "../common/CoboArgusACLGuard.sol";
+import {ACLGuard} from "../common/ACLGuard.sol";
 import {OpenEndFundSettlementGuard} from "../common/OpenEndFundSettlementGuard.sol";
-contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGuard, CoboArgusACLGuard {
+import {GMXV1ACL} from "./acls/GMXV1ACL.sol";
+contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGuard, ACLGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
+	string public constant NAME = "GMXV1OpenEndFundGuard";
+	uint256 public constant VERSION = 1;
+
 	address public constant GMX_REWAED_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
-	address public constant ARGUS_GMXV1_ACL = 0xFd11981Da6af3142555e3c8B60d868C7D7eE1963;
 	address public constant GMX_REWAED_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 
 	string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
 	string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
-	constructor(address openEndFundMarket_, 
+	constructor(address safeAccount_, address openEndFundMarket_, 
 			address openEndFundShare_, address openEndFundRedemption_) 
 			OpenEndFundSettlementGuard(openEndFundMarket_, openEndFundShare_, openEndFundRedemption_) {
 		string[] memory glpRewardRouterV2Funcs = new string[](3);
@@ -39,7 +43,7 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
         tokensFuncs[0] = ERC20_APPROVE_FUNC;
         tokensFuncs[1] = ERC20_TRANSFER_FUNC;
 
-		address[] memory tokens = new address[](9);
+		address[] memory tokens = new address[](10);
 		tokens[0] = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
 		tokens[1] = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f; //WBTC
 		tokens[2] =	0xf97f4df75117a78c1A5a0DBb814Af92458539FB4; //LINK
@@ -49,14 +53,22 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 		tokens[6] = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; //DAI
 		tokens[7] = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9; //USDT
 		tokens[8] = 0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F; //FRAX
+		tokens[9] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; //ETH
         for (uint256 i = 0; i < tokens.length; i++) {
             _addContractFuncs(tokens[i], tokensFuncs);
             _addContractFuncs(tokens[i], tokensFuncs);
         }
 
 		address[] memory acls = new address[](1);
-		acls[0] = ARGUS_GMXV1_ACL;
+		acls[0] = address(new GMXV1ACL(address(this), safeAccount_, tokens));
 		_addStrategyACLS(GMX_REWAED_ROUTER_V2, acls);
 	}
 
+	function _checkTransaction( TxData calldata txData ) internal virtual override returns (CheckResult memory result) {
+		result = super._checkTransaction(txData);
+		if (!result.success) {
+			return result;
+		}
+		result = _executeACL(txData);
+	}
 }

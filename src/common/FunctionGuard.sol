@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import "forge-std/console.sol";
-import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
+import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {BaseGuard} from "../common/BaseGuard.sol";
 
 contract FunctionGuard is BaseGuard {

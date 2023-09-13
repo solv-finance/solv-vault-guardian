@@ -2,11 +2,13 @@
 
 pragma solidity 0.8.21;
 
-import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
+import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {BaseGuard} from "../common/BaseGuard.sol";
 
 contract TransferGuard is BaseGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
+	string public constant NAME = "TransferGuard";
+	uint256 public constant VERSION = 1;
 
 	event TokenAdded(address indexed token);
 	event TokenRemoved(address indexed token);
