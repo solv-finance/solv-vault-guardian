@@ -2,46 +2,35 @@
 pragma solidity 0.8.21;
 
 import "forge-std/console.sol";
+import "openzeppelin-contracts-upgradeable/access/Ownableupgradeable.sol";
+import "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Guard} from "safe-contracts/base/GuardManager.sol";
 import {GnosisSafeL2, Enum} from "safe-contracts/GnosisSafeL2.sol";
 import {BaseGuard} from "./BaseGuard.sol";
 
 
-abstract contract SolvSafeguardRootGuard is Guard {
-    bytes32 public constant NAME = "SolvSafeguard";
-    uint256 public constant VERSION = 1;
+abstract contract SolvSafeguardRoot is Guard, OwnableUpgradeable, UUPSUpgradeable {
 
-    address public immutable safeAccount;
+    address public safeAccount;
     
     address[] public guards;
-
-
-    address public immutable owner;
-
-    modifier onlyOwner {
-        require(msg.sender == owner, "SolvSafeguard: only owner");
-        _;
-    }
 
 	fallback() external {
         // We don't revert on fallback to avoid issues in case of a Safe upgrade
         // E.g. The expected check method might change and then the Safe would be locked.
     }
 
-	constructor(address safeAccount_) {
-        owner = msg.sender;
+    function __SolvSafeguardRootGuard_init(address safeAccount_) internal {
         safeAccount = safeAccount_;
-	}
+        __UUPSUpgradeable_init();
+        __Ownable_init();
+    }
 
     function _setGuards(address[] memory guards_) internal {
         for (uint256 i = 0; i < guards_.length; i++) {
             require(guards_[i] != address(0), "SolvSafeguard: guard is zero address");
         }
         guards = guards_;
-    }
-
-    function setGuards(address[] memory guards_) external onlyOwner {
-        _setGuards(guards_);
     }
 
     function checkTransaction(
@@ -81,5 +70,5 @@ abstract contract SolvSafeguardRootGuard is Guard {
         bool success
     ) external override {}
 
-    
+    function _authorizeUpgrade(address newImplementation) internal virtual override {}    
 }

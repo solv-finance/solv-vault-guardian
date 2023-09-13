@@ -2,7 +2,8 @@
 
 pragma solidity 0.8.21;
 
-import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
+import "forge-std/console.sol";
+import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {BaseGuard} from "../common/BaseGuard.sol";
 
 interface CoboArgusACL {
@@ -63,9 +64,11 @@ contract CoboArgusACLGuard  {
 	function _executeACL(
 		BaseGuard.TxData calldata txData
 	) internal virtual returns (BaseGuard.CheckResult memory result)  {
+		console.log("executeACL: ");
 		address strategy = txData.to;
 		for (uint i = 0; i < _coboArgusACLs[strategy].length(); i++) {
 			address acl = _coboArgusACLs[strategy].at(i);
+			console.logAddress(acl);
 			CoboArgusACL.AuthorizerReturnData memory authData = CoboArgusACL(acl).preExecCheck(
 				CoboArgusACL.TransactionData({
 					from: txData.from,
@@ -77,6 +80,7 @@ contract CoboArgusACLGuard  {
 					hint: "",
 					extra: ""
 				}));
+			console.logBool(authData.result == CoboArgusACL.AuthResult.SUCCESS);
 			if (authData.result == CoboArgusACL.AuthResult.FAILED) {
 				result.success = false;
 				result.message = authData.message;

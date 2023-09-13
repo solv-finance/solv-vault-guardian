@@ -5,7 +5,7 @@ pragma solidity 0.8.21;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../common/SafeguardBaseTest.sol";
-import "../../src/guards/TransferGuard.sol";
+import "../../src/strategies/TransferGuard.sol";
 
 contract TransferGuardTest is SafeguardBaseTest {
 	address public constant TransferERC20 = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9; //USDT

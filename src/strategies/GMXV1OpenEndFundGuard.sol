@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
+import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {FunctionGuard} from "../common/FunctionGuard.sol";
 import {CoboArgusAdminGuard} from "../common/CoboArgusAdminGuard.sol";
 import {CoboArgusACLGuard} from "../common/CoboArgusACLGuard.sol";
@@ -10,9 +10,9 @@ import {OpenEndFundSettlementGuard} from "../common/OpenEndFundSettlementGuard.s
 contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGuard, CoboArgusACLGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
-	address public constant GLP_REWAED_ROUTER = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
+	address public constant GMX_REWAED_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
 	address public constant ARGUS_GMXV1_ACL = 0xFd11981Da6af3142555e3c8B60d868C7D7eE1963;
-	address public constant GLP_REWAED_ROUTER_V2 = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
+	address public constant GMX_REWAED_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 
 	string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
 	string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
@@ -25,7 +25,15 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 		glpRewardRouterV2Funcs[1] = "claim()";
 		glpRewardRouterV2Funcs[2] = "compound()";
 
-		_addContractFuncs(GLP_REWAED_ROUTER_V2, glpRewardRouterV2Funcs);
+		_addContractFuncs(GMX_REWAED_ROUTER, glpRewardRouterV2Funcs);
+
+		string[] memory glpRewardRouterFuncs = new string[](4);
+		glpRewardRouterFuncs[0] = "mintAndStakeGlp(address,uint256,uint256,uint256)";
+		glpRewardRouterFuncs[1] = "unstakeAndRedeemGlp(address,uint256,uint256,address)";
+		glpRewardRouterFuncs[2] = "mintAndStakeGlpETH(uint256,uint256)";
+		glpRewardRouterFuncs[3] = "unstakeAndRedeemGlpETH(uint256,uint256,address)";
+
+		_addContractFuncs(GMX_REWAED_ROUTER_V2, glpRewardRouterFuncs);
 
 		string[] memory tokensFuncs = new string[](2);
         tokensFuncs[0] = ERC20_APPROVE_FUNC;
@@ -48,7 +56,7 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 
 		address[] memory acls = new address[](1);
 		acls[0] = ARGUS_GMXV1_ACL;
-		_addStrategyACLS(GLP_REWAED_ROUTER, acls);
+		_addStrategyACLS(GMX_REWAED_ROUTER_V2, acls);
 	}
 
 }

@@ -4,7 +4,7 @@ pragma solidity 0.8.21;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/common/SolvSafeguardRootGuard.sol";
+import "../../src/common/SolvSafeguardRoot.sol";
 
 abstract contract SafeguardBaseTest is Test {
     address payable public constant SAFE_ACCOUNT = payable(0x01c106FadEbBB2D32c2EAcAB3F5874B25B009cbb);
@@ -17,7 +17,7 @@ abstract contract SafeguardBaseTest is Test {
 
     address internal _msgSender;
     uint256 internal _privKey;
-    SolvSafeguardRootGuard internal _safeguard;
+    SolvSafeguardRoot internal _safeguard;
 
     function setUp() virtual public {
         _privKey = vm.envUint("PRIVATE_KEY");
@@ -30,7 +30,7 @@ abstract contract SafeguardBaseTest is Test {
             guard_
         );
         vm.startPrank(_msgSender);
-        _callExecTransaction(SAFE_ACCOUNT, data, Enum.Operation.Call);
+        _callExecTransaction(SAFE_ACCOUNT, 0, data, Enum.Operation.Call);
         vm.stopPrank();
     }
 
@@ -40,11 +40,12 @@ abstract contract SafeguardBaseTest is Test {
             to_,
             amount_
         );
-        _callExecTransaction(token_, data, Enum.Operation.Call);
+        _callExecTransaction(token_, 0, data, Enum.Operation.Call);
     }
 
     function _getSignature(
         address contract_,
+        uint256 value_,
         bytes memory data_,
         Enum.Operation operation_
     ) internal view returns (bytes memory) {
@@ -52,7 +53,7 @@ abstract contract SafeguardBaseTest is Test {
         bytes memory txHashData = GnosisSafeL2(SAFE_ACCOUNT)
             .encodeTransactionData(
                 contract_,
-                0,
+                value_,
                 data_,
                 operation_,
                 0,
@@ -69,13 +70,14 @@ abstract contract SafeguardBaseTest is Test {
 
     function _callExecTransaction(
         address contract_,
+        uint256 value_,
         bytes memory data_,
         Enum.Operation operation_
     ) internal {
-        bytes memory signature = _getSignature(contract_, data_, operation_);
+        bytes memory signature = _getSignature(contract_, value_, data_, operation_);
         GnosisSafeL2(SAFE_ACCOUNT).execTransaction(
             contract_,
-            0,
+            value_,
             data_,
             operation_,
             0,

@@ -5,7 +5,7 @@ pragma solidity 0.8.21;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../common/SafeguardBaseTest.sol";
-import "../../src/guards/GMXV1OpenEndFundGuard.sol";
+import "../../src/strategies/GMXV1OpenEndFundGuard.sol";
 
 contract GMXV1OpenEndFundGuardTest is SafeguardBaseTest {
 	GMXV1OpenEndFundGuard internal _gmxV1Guard;

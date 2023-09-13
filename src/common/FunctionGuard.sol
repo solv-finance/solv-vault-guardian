@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import "forge-std/console.sol";
-import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
+import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 import {BaseGuard} from "../common/BaseGuard.sol";
 
 contract FunctionGuard is BaseGuard {
@@ -28,12 +28,6 @@ contract FunctionGuard is BaseGuard {
             bytes4 funcSelector = bytes4(keccak256(bytes(funcList_[index])));
             bytes32 funcSelector32 = bytes32(funcSelector);
             if (_allowedContractToFunctions[contract_].add(funcSelector32)) {
-                /*
-                console.logString("add func: ");
-                console.logAddress(contract_);
-                console.logString(funcList_[index]);
-                console.logBytes4(funcSelector);
-                */
                 emit AddContractFunc(contract_, funcList_[index], msg.sender);
                 emit AddContractFuncSig(contract_, funcSelector, msg.sender);
             }
@@ -75,7 +69,6 @@ contract FunctionGuard is BaseGuard {
     function _checkTransactionWithRecursion(address to_, bytes calldata data_) internal view 
         virtual returns (CheckResult memory result_) {
         bytes4 selector = _getSelector(data_);
-        //console.logBytes4(selector);
 
         if (selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
             result_ = _checkMultiSend(data_);
