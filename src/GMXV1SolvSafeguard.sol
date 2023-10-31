@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.21;
 
-import {SolvSafeguardRoot} from "./common/SolvSafeguardRoot.sol";
-import {TransferGuard} from "./strategies/TransferGuard.sol";
-import {GMXV1OpenEndFundGuard} from "./strategies/GMXV1OpenEndFundGuard.sol";
+import { SolvSafeguardRoot } from "./common/SolvSafeguardRoot.sol";
+import { TransferGuard } from "./strategies/guards/TransferGuard.sol";
+import { GMXV1OpenEndFundGuard } from "./strategies/guards/GMXV1OpenEndFundGuard.sol";
 
 contract GMXV1SolvSafeguard is SolvSafeguardRoot {
 	string public constant NAME = "GMXV1SolvSafeguard";
@@ -29,7 +29,7 @@ contract GMXV1SolvSafeguard is SolvSafeguardRoot {
 		guards[0] = transferGuard;
 		guards[1] = gmxV1OpenEndFundGuard;
 
-		_setSolvGuards(guards);
+		// _setSolvGuards(guards);
 	}
 
 

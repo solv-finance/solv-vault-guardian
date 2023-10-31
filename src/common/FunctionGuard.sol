@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.21;
 
+import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import { BaseGuard } from "../common/BaseGuard.sol";
 import "forge-std/console.sol";
-import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import {BaseGuard} from "../common/BaseGuard.sol";
 
-contract FunctionGuard is BaseGuard {
+abstract contract FunctionGuard is BaseGuard {
 	using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -22,7 +22,7 @@ contract FunctionGuard is BaseGuard {
 	mapping(address => EnumerableSet.Bytes32Set) internal _allowedContractToFunctions;
 
     function _addContractFuncs(address contract_, string[] memory funcList_) internal {
-        require(funcList_.length > 0, "FuncGuard: empty funcList");
+        require(funcList_.length > 0, "FunctionGuard: empty funcList");
 
         for (uint256 index = 0; index < funcList_.length; index++) {
             bytes4 funcSelector = bytes4(keccak256(bytes(funcList_[index])));
@@ -36,8 +36,8 @@ contract FunctionGuard is BaseGuard {
         _contracts.add(contract_);
     }
 
-   function _addContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) internal {
-        require(funcSigList_.length > 0, "empty funcList");
+    function _addContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) internal {
+        require(funcSigList_.length > 0, "FunctionGuard: empty funcList");
 
         for (uint256 index = 0; index < funcSigList_.length; index++) {
             bytes32 funcSelector32 = bytes32(funcSigList_[index]);
@@ -47,6 +47,38 @@ contract FunctionGuard is BaseGuard {
         }
 
         _contracts.add(contract_);
+    }
+
+    function _removeContractFuncs(address contract_, string[] calldata funcList_) internal {
+        require(funcList_.length > 0, "FunctionGuard: empty funcList");
+
+        for (uint256 index = 0; index < funcList_.length; index++) {
+            bytes4 funcSelector = bytes4(keccak256(bytes(funcList_[index])));
+            bytes32 funcSelector32 = bytes32(funcSelector);
+            if (_allowedContractToFunctions[contract_].remove(funcSelector32)) {
+                emit RemoveContractFunc(contract_, funcList_[index], msg.sender);
+                emit RemoveContractFuncSig(contract_, funcSelector, msg.sender);
+            }
+        }
+
+        if (_allowedContractToFunctions[contract_].length() == 0) {
+            _contracts.remove(contract_);
+        }
+    }
+
+    function _removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) internal {
+        require(funcSigList_.length > 0, "FunctionGuard: empty funcList");
+
+        for (uint256 index = 0; index < funcSigList_.length; index++) {
+            bytes32 funcSelector32 = bytes32(funcSigList_[index]);
+            if (_allowedContractToFunctions[contract_].remove(funcSelector32)) {
+                emit RemoveContractFuncSig(contract_, funcSigList_[index], msg.sender);
+            }
+        }
+
+        if (_allowedContractToFunctions[contract_].length() == 0) {
+            _contracts.remove(contract_);
+        }
     }
 
 	function getAllContracts() public view returns (address[] memory) {

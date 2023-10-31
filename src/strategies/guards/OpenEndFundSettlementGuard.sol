@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import {FunctionGuard} from "../common/FunctionGuard.sol";
+import { FunctionGuard } from "../../common/FunctionGuard.sol";
 
 contract OpenEndFundSettlementGuard is FunctionGuard {
 	string public constant MARKET_FUNC_SET_REDEEM_NAV = "setRedeemNav(bytes32,uint256,uint256,uint256)";
@@ -11,8 +11,10 @@ contract OpenEndFundSettlementGuard is FunctionGuard {
 	string public constant SHARE_FUNC_REPAY_WITH_BALANCE = "repayWithBalance(uint256,address,uint256)";
 	string public constant REDEMPTION_FUNC_REPAY = "repay(uint256,address,uint256)";
 	string public constant REDEMPTION_FUNC_REPAY_WITH_BALANCE = "repayWithBalance(uint256,address,uint256)";
-	constructor(address openEndFundMarket_, 
-			address openEndFundShare_, address openEndFundRedemption_) {
+	
+	constructor(
+		address openEndFundMarket_, address openEndFundShare_, address openEndFundRedemption_
+	) {
 		string[] memory openEndFundMarketFuncs = new string[](2);
 		openEndFundMarketFuncs[0] = MARKET_FUNC_SET_REDEEM_NAV;
 		openEndFundMarketFuncs[1] = MARKET_FUNC_UPDATE_FUNDRAISING_END_TIME;

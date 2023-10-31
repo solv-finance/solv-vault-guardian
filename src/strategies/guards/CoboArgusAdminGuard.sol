@@ -2,9 +2,8 @@
 
 pragma solidity 0.8.21;
 
+import { FunctionGuard } from "../../common/FunctionGuard.sol";
 import "forge-std/console.sol";
-import {FunctionGuard} from "../common/FunctionGuard.sol";
-
 
 contract CoboArgusAdminGuard is FunctionGuard {
 

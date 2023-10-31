@@ -2,13 +2,14 @@
 
 pragma solidity 0.8.21;
 
+import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import { FunctionGuard } from "../../common/FunctionGuard.sol";
+import { ACLGuard } from "../../common/ACLGuard.sol";
+import { CoboArgusAdminGuard } from "./CoboArgusAdminGuard.sol";
+import { OpenEndFundSettlementGuard } from "./OpenEndFundSettlementGuard.sol";
+import { GMXV1ACL } from "../acls/GMXV1ACL.sol";
 import "forge-std/console.sol";
-import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import {FunctionGuard} from "../common/FunctionGuard.sol";
-import {CoboArgusAdminGuard} from "../common/CoboArgusAdminGuard.sol";
-import {ACLGuard} from "../common/ACLGuard.sol";
-import {OpenEndFundSettlementGuard} from "../common/OpenEndFundSettlementGuard.sol";
-import {GMXV1ACL} from "./acls/GMXV1ACL.sol";
+
 contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGuard, ACLGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -21,9 +22,10 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 	string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
 	string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
-	constructor(address safeAccount_, address openEndFundMarket_, 
-			address openEndFundShare_, address openEndFundRedemption_) 
-			OpenEndFundSettlementGuard(openEndFundMarket_, openEndFundShare_, openEndFundRedemption_) {
+	constructor(
+		address safeAccount_, address openEndFundMarket_, 
+		address openEndFundShare_, address openEndFundRedemption_
+	) OpenEndFundSettlementGuard(openEndFundMarket_, openEndFundShare_, openEndFundRedemption_) {
 		string[] memory glpRewardRouterV2Funcs = new string[](3);
 		glpRewardRouterV2Funcs[0] = "handleRewards(bool,bool,bool,bool,bool,bool,bool)";
 		glpRewardRouterV2Funcs[1] = "claim()";

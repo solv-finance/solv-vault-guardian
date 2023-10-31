@@ -3,11 +3,11 @@
 pragma solidity 0.8.21;
 
 import "forge-std/console.sol";
-import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import {BaseGuard} from "../common/BaseGuard.sol";
-import {BaseACL} from "../common/BaseACL.sol";
+import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
+import { BaseGuard } from "../common/BaseGuard.sol";
+import { BaseACL } from "../common/BaseACL.sol";
 
-contract ACLGuard  {
+abstract contract ACLGuard  {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
 	event AddStrategyACL(address indexed strategy, address indexed acl);

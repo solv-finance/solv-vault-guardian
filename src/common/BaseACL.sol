@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.21;
 
+import { BaseGuard } from "./BaseGuard.sol";
 import "forge-std/console.sol";
-import {BaseGuard} from "./BaseGuard.sol";
 
 abstract contract BaseACL {
 	address public caller;
@@ -33,7 +33,7 @@ abstract contract BaseACL {
 		result_ = _parseReturnData(success, revertData);
 	}
 
-	function _packTxn(BaseGuard.TxData calldata txData_) internal pure virtual returns (bytes memory) {
+	function _packTxn(BaseGuard.TxData memory txData_) internal pure virtual returns (bytes memory) {
         bytes memory txnData = abi.encode(txData_);
         bytes memory callDataSize = abi.encode(txData_.data.length);
         return abi.encodePacked(txData_.data, txnData, callDataSize);
