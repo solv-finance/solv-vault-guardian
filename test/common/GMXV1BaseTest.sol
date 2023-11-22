@@ -20,6 +20,7 @@ contract GMXV1BaseTest is SafeguardBaseTest {
 	function _createGMXV1SolvSafeguard() internal returns (GMXV1SolvSafeguard) {
 		GMXV1SolvSafeguard safeGuard = new GMXV1SolvSafeguard(
 			SAFE_ACCOUNT,
+			SAFE_ACCOUNT,
 			USDT,
 			CEX_RECHARGE_ADDRESS,
 			OPEN_END_FUND_MARKET,

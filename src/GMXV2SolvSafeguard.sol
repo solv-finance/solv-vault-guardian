@@ -12,9 +12,9 @@ contract GMXV2SolvSafeguard is SolvSafeguardRoot {
     uint256 public constant VERSION = 1;
 
 	constructor(
-		address safeAccount_, address erc20_, address cexRechargeAdress_, 
+		address safeAccount_, address governor_, address erc20_, address cexRechargeAdress_, 
 		address openEndFundMarket_, address openEndFundShare_, address openEndFundRedemption_
-	) SolvSafeguardRoot(safeAccount_) {
+	) SolvSafeguardRoot(safeAccount_, governor_) {
 		__GMXV2SolvSafeguard_init(erc20_, cexRechargeAdress_, openEndFundMarket_, openEndFundShare_, openEndFundRedemption_);
 	}
 

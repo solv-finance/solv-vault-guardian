@@ -9,10 +9,13 @@ contract GMXV1SolvSafeguard is SolvSafeguardRoot {
 	string public constant NAME = "GMXV1SolvSafeguard";
     uint256 public constant VERSION = 1;
 
-	constructor(address safeAccount_, address erc20_, address cexRechargeAdress_, address openEndFundMarket_, 
-			address openEndFundShare_, address openEndFundRedemption_) SolvSafeguardRoot(safeAccount_) {
+	constructor(
+		address safeAccount_, address governor_, address erc20_, address cexRechargeAdress_, 
+		address openEndFundMarket_, address openEndFundShare_, address openEndFundRedemption_
+	) SolvSafeguardRoot(safeAccount_, governor_) {
 		__GMXV1SolvSafeguard_init(erc20_, cexRechargeAdress_, openEndFundMarket_, openEndFundShare_, openEndFundRedemption_);
 	}
+	
 	function __GMXV1SolvSafeguard_init(address erc20_, address cexRechargeAdress_, address openEndFundMarket_, 
 			address openEndFundShare_, address openEndFundRedemption_) internal {
 		//cex recharge address

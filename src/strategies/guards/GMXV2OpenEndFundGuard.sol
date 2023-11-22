@@ -30,26 +30,32 @@ contract GMXV2OpenEndFundGuard is FunctionGuard, ACLGuard {
         tokensFuncs[0] = ERC20_APPROVE_FUNC;
         tokensFuncs[1] = ERC20_TRANSFER_FUNC;
 
-		address[] memory tokens = new address[](10);
-		tokens[0] = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;  // WETH
-		tokens[1] = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;  // WBTC
-		tokens[2] =	0xf97f4df75117a78c1A5a0DBb814Af92458539FB4;  // LINK
-		tokens[3] = 0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0;  // UNI
-		tokens[4] =	0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;  // USDC
-		tokens[5] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;  // USDC
-		tokens[6] = 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1;  // DAI
-		tokens[7] = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;  // USDT
-		tokens[8] = 0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F;  // FRAX
-		tokens[9] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;  // ETH
-		tokens[10] = 0x47c031236e19d024b42f8AE6780E44A573170703; // GM: BTC-USDC
-		tokens[11] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336; // GM: ETH-USDC
+		address[] memory tokens = new address[](4);
+		tokens[0] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;  // ETH
+		tokens[1] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;  // USDC
+		tokens[2] = 0x47c031236e19d024b42f8AE6780E44A573170703;  // GM: BTC-USDC
+		tokens[3] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336;  // GM: ETH-USDC
         for (uint256 i = 0; i < tokens.length; i++) {
             _addContractFuncs(tokens[i], tokensFuncs);
             _addContractFuncs(tokens[i], tokensFuncs);
         }
 
+		// add GMXV2ACL
+		address[] memory gmTokens = new address[](2);
+		gmTokens[0] = 0x47c031236e19d024b42f8AE6780E44A573170703;  // GM: BTC-USDC
+		gmTokens[1] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336;  // GM: ETH-USDC
+
+		GMXV2ACL.CollateralPair[] memory gmPairs = new GMXV2ACL.CollateralPair[](2);
+		gmPairs[0] = GMXV2ACL.CollateralPair({ 
+          longCollateral: 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f,  // WBTC
+          shortCollateral: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831  // USDC
+        });
+		gmPairs[1] = GMXV2ACL.CollateralPair({ 
+          longCollateral: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,  // WBTC
+          shortCollateral: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831  // USDC
+        });
 		address[] memory acls = new address[](1);
-		acls[0] = address(new GMXV2ACL(address(this), safeAccount_, tokens));
+		acls[0] = address(new GMXV2ACL(address(this), safeAccount_, gmTokens, gmPairs));
 		_addStrategyACLS(GMX_EXCHANGE_ROUTER, acls);
 	}
 

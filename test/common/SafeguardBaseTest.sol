@@ -5,15 +5,20 @@ pragma solidity 0.8.21;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../../src/common/SolvSafeguardRoot.sol";
+import { GnosisSafeL2 } from "safe-contracts/GnosisSafeL2.sol";
 
 abstract contract SafeguardBaseTest is Test {
-    address payable public constant SAFE_ACCOUNT = payable(0x01c106FadEbBB2D32c2EAcAB3F5874B25B009cbb);
+    address payable public constant SAFE_ACCOUNT = payable(0x9B1cf397C9ECdD70F76d0B6f51A2582EeEED2eb7);
     address public constant SAFE_MULTI_SEND_CONTRACT = 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
-    address public constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+
 	address public constant OPEN_END_FUND_MARKET = 0x629aD7Bc14726e9cEA4FCb3A7b363D237bB5dBE8;
 	address public constant OPEN_END_FUND_SHARE = 0x22799DAA45209338B7f938edf251bdfD1E6dCB32;
 	address public constant OPEN_END_FUND_REDEMPTION = 0xe9bD233b2b34934Fb83955EC15c2ac48F31A0E8c;
 	address public constant CEX_RECHARGE_ADDRESS = 0xd1B4ea4A0e176292D667695FC7674F845009b32E;
+
+    address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address public constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
     address internal _msgSender;
     uint256 internal _privKey;

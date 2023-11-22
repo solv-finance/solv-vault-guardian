@@ -15,7 +15,7 @@ contract CoboArgusAdminGuard is FunctionGuard {
     string public constant ARGUS_ACCOUNT_HELPER_FUNC_GRANT_ROLES = "grantRoles(address,bytes32[],address[])";
     string public constant ARGUS_ACCOUNT_HELPER_FUNC_REVOKE_ROLES = "revokeRoles(address,bytes32[],address[])";
 
-    address public constant ARGUS_CONTRACTS_FLAT_ROLE_MANAGER = 0x71D7e97778DEC858D01b00dC2CB76491B7588C4b;
+    address public constant ARGUS_CONTRACTS_FLAT_ROLE_MANAGER = 0x80346Efdc8957843A472e5fdaD12Ea4fD340A845;
     string public constant ARGUS_FLAT_ROLE_MANAGER_FUNC_ADD_ROLE = "addRoles(bytes32[])";
 
     address public constant ARGUS_CONTRACTS_FARMING_BASE_ACL = 0xFd11981Da6af3142555e3c8B60d868C7D7eE1963;

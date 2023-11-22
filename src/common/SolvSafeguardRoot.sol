@@ -2,14 +2,13 @@
 pragma solidity 0.8.21;
 
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
-import { GnosisSafeL2, Enum } from "safe-contracts/GnosisSafeL2.sol";
-import { Guard } from "safe-contracts/base/GuardManager.sol";
+import { Governable } from "../utils/Governable.sol";
+import { Guard, Enum } from "safe-contracts/base/GuardManager.sol";
 import { BaseGuard } from "./BaseGuard.sol";
 import { GuardManagerGuard } from "./GuardManagerGuard.sol";
 import "forge-std/console.sol";
 
-abstract contract SolvSafeguardRoot is Guard, Ownable {
+abstract contract SolvSafeguardRoot is Guard, Governable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -31,7 +30,7 @@ abstract contract SolvSafeguardRoot is Guard, Ownable {
         // E.g. The expected check method might change and then the Safe would be locked.
     }
 
-    constructor(address safeAccount_) Ownable() {
+    constructor(address safeAccount_, address governor_) Governable(governor_) {
         safeAccount = safeAccount_;
         allowSetSolvGuards = true;
 
@@ -43,7 +42,7 @@ abstract contract SolvSafeguardRoot is Guard, Ownable {
 		_addSolvGuards(guardManagerCluster, guardManagerGuards);
     }
 
-    function addSolvGuards(bytes32 cluster_, address[] calldata guards_) external onlyOwner {
+    function addSolvGuards(bytes32 cluster_, address[] calldata guards_) external onlyGovernor {
         _addSolvGuards(cluster_, guards_);
     }
 
@@ -60,7 +59,7 @@ abstract contract SolvSafeguardRoot is Guard, Ownable {
         _clusters.add(cluster_);
     }
 
-    function removeSolvGuards(bytes32 cluster_, address[] calldata guards_) external onlyOwner {
+    function removeSolvGuards(bytes32 cluster_, address[] calldata guards_) external onlyGovernor {
         _removeSolvGuards(cluster_, guards_);
     }
 
@@ -87,7 +86,7 @@ abstract contract SolvSafeguardRoot is Guard, Ownable {
         return _guards[cluster_].values();
     }
 
-    function forbidSetSolvGuards() external onlyOwner {
+    function forbidSetSolvGuards() external onlyGovernor {
         // Remove GuardManagerGuard: disallow updating safeguard address
 		bytes32 guardManagerCluster = bytes32(keccak256("GuardManagerGuards"));
         address[] memory guards = getAllGuards(guardManagerCluster);

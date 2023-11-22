@@ -6,7 +6,7 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "./common/GMXV1BaseTest.sol";
 import {GMXV1SolvSafeguard} from "../src/GMXV1SolvSafeguard.sol";
-import {GMXV1OpenEndFundGuard} from "../src/strategies/GMXV1OpenEndFundGuard.sol";
+import {GMXV1OpenEndFundGuard} from "../src/strategies/guards/GMXV1OpenEndFundGuard.sol";
 
 interface ERC20 {
 	function balanceOf(address account) external view returns (uint256);
