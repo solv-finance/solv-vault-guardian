@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.21;
+
+pragma solidity ^0.8.0;
 
 import { SolvSafeguardRoot } from "./common/SolvSafeguardRoot.sol";
 import { CoboArgusAdminGuard } from "./strategies/guards/CoboArgusAdminGuard.sol";
@@ -15,16 +16,18 @@ contract GMXV2SolvSafeguard is SolvSafeguardRoot {
 		address safeAccount_, address governor_, address erc20_, address cexRechargeAdress_, 
 		address openEndFundMarket_, address openEndFundShare_, address openEndFundRedemption_
 	) SolvSafeguardRoot(safeAccount_, governor_) {
-		__GMXV2SolvSafeguard_init(erc20_, cexRechargeAdress_, openEndFundMarket_, openEndFundShare_, openEndFundRedemption_);
+		__GMXV2SolvSafeguard_init(
+			governor_, erc20_, cexRechargeAdress_, openEndFundMarket_, openEndFundShare_, openEndFundRedemption_
+		);
 	}
 
 	function __GMXV2SolvSafeguard_init(
-		address erc20_, address cexRechargeAdress_, address openEndFundMarket_, 
-		address openEndFundShare_, address openEndFundRedemption_
+		address governor_, address erc20_, address cexRechargeAdress_, 
+		address openEndFundMarket_, address openEndFundShare_, address openEndFundRedemption_
 	) internal {
 		// Cobo Argus Admin Guard
 		bytes32 coboArgusAdminCluster = bytes32(keccak256("CoboArgusAdminGuards"));
-		CoboArgusAdminGuard coboArgusAdminGuard = new CoboArgusAdminGuard();
+		CoboArgusAdminGuard coboArgusAdminGuard = new CoboArgusAdminGuard(governor_);
 		address[] memory coboArgusAdminGuards = new address[](1);
 		coboArgusAdminGuards[0] = address(coboArgusAdminGuard);
 		_addSolvGuards(coboArgusAdminCluster, coboArgusAdminGuards);

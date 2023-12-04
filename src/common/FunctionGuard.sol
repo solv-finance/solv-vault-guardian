@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.0;
 
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { BaseGuard } from "../common/BaseGuard.sol";
-import "forge-std/console.sol";
 
 abstract contract FunctionGuard is BaseGuard {
 	using EnumerableSet for EnumerableSet.Bytes32Set;

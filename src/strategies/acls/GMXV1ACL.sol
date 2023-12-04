@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.0;
 
 import "forge-std/console.sol";
 import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
@@ -17,7 +17,6 @@ contract GMXV1ACL is BaseACL {
     address public constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
 	EnumerableSet.AddressSet internal _allowTokens;
-
 
 	constructor(address caller_, address safeAccount_, address[] memory tokens_) BaseACL(caller_) {
 		for (uint256 i = 0; i < tokens_.length; i++) {

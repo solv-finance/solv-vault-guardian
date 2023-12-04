@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
@@ -9,6 +9,8 @@ import { GnosisSafeL2 } from "safe-contracts/GnosisSafeL2.sol";
 
 abstract contract SafeguardBaseTest is Test {
     address payable public constant SAFE_ACCOUNT = payable(0x9B1cf397C9ECdD70F76d0B6f51A2582EeEED2eb7);
+    address payable public constant SAFE_GOVERNOR = payable(0x15f043CFC880B3e17Ffd15E6D0A4dc17A951a863);
+
     address public constant SAFE_MULTI_SEND_CONTRACT = 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
 
 	address public constant OPEN_END_FUND_MARKET = 0x629aD7Bc14726e9cEA4FCb3A7b363D237bB5dBE8;

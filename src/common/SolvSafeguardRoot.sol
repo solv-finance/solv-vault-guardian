@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.21;
+
+pragma solidity ^0.8.0;
 
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { Governable } from "../utils/Governable.sol";
@@ -8,7 +9,7 @@ import { BaseGuard } from "./BaseGuard.sol";
 import { GuardManagerGuard } from "./GuardManagerGuard.sol";
 import "forge-std/console.sol";
 
-abstract contract SolvSafeguardRoot is Guard, Governable {
+contract SolvSafeguardRoot is Guard, Governable {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -36,7 +37,7 @@ abstract contract SolvSafeguardRoot is Guard, Governable {
 
         // GuardManagerGuard: allow updating safeguard address by default
 		bytes32 guardManagerCluster = bytes32(keccak256("GuardManagerGuards"));
-		GuardManagerGuard guardManagerGuard = new GuardManagerGuard(safeAccount_);
+		GuardManagerGuard guardManagerGuard = new GuardManagerGuard(safeAccount_, governor_);
 		address[] memory guardManagerGuards = new address[](1);
 		guardManagerGuards[0] = address(guardManagerGuard);
 		_addSolvGuards(guardManagerCluster, guardManagerGuards);

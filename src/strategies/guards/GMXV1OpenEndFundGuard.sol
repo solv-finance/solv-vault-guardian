@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.0;
 
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { FunctionGuard } from "../../common/FunctionGuard.sol";
@@ -10,7 +10,7 @@ import { OpenEndFundSettlementGuard } from "./OpenEndFundSettlementGuard.sol";
 import { GMXV1ACL } from "../acls/GMXV1ACL.sol";
 import "forge-std/console.sol";
 
-contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGuard, ACLGuard {
+contract GMXV1OpenEndFundGuard is CoboArgusAdminGuard, OpenEndFundSettlementGuard, ACLGuard {
 	using EnumerableSet for EnumerableSet.AddressSet;
 
 	string public constant NAME = "GMXV1OpenEndFundGuard";
@@ -23,9 +23,12 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 	string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
 	constructor(
-		address safeAccount_, address openEndFundMarket_, 
+		address safeAccount_, address governor_, address openEndFundMarket_, 
 		address openEndFundShare_, address openEndFundRedemption_
-	) OpenEndFundSettlementGuard(openEndFundMarket_, openEndFundShare_, openEndFundRedemption_) {
+	) 
+		CoboArgusAdminGuard(governor_)
+		OpenEndFundSettlementGuard(openEndFundMarket_, openEndFundShare_, openEndFundRedemption_) 
+	{
 		string[] memory glpRewardRouterV2Funcs = new string[](3);
 		glpRewardRouterV2Funcs[0] = "handleRewards(bool,bool,bool,bool,bool,bool,bool)";
 		glpRewardRouterV2Funcs[1] = "claim()";
@@ -66,7 +69,7 @@ contract GMXV1OpenEndFundGuard is  CoboArgusAdminGuard, OpenEndFundSettlementGua
 		_addStrategyACLS(GMX_REWAED_ROUTER_V2, acls);
 	}
 
-	function _checkTransaction( TxData calldata txData ) internal virtual override returns (CheckResult memory result) {
+	function _checkTransaction( TxData calldata txData ) internal virtual override(FunctionGuard, CoboArgusAdminGuard) returns (CheckResult memory result) {
 		result = super._checkTransaction(txData);
 		if (!result.success) {
 			return result;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity 0.8.17;
 
 import { EnumerableSet } from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import { FunctionGuard } from "../../common/FunctionGuard.sol";
@@ -30,28 +30,34 @@ contract GMXV2OpenEndFundGuard is FunctionGuard, ACLGuard {
         tokensFuncs[0] = ERC20_APPROVE_FUNC;
         tokensFuncs[1] = ERC20_TRANSFER_FUNC;
 
-		address[] memory tokens = new address[](4);
+		address[] memory tokens = new address[](5);
 		tokens[0] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;  // ETH
 		tokens[1] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;  // USDC
 		tokens[2] = 0x47c031236e19d024b42f8AE6780E44A573170703;  // GM: BTC-USDC
 		tokens[3] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336;  // GM: ETH-USDC
+		tokens[4] = 0xC25cEf6061Cf5dE5eb761b50E4743c1F5D7E5407;  // GM: ARB-USDC
         for (uint256 i = 0; i < tokens.length; i++) {
             _addContractFuncs(tokens[i], tokensFuncs);
             _addContractFuncs(tokens[i], tokensFuncs);
         }
 
 		// add GMXV2ACL
-		address[] memory gmTokens = new address[](2);
+		address[] memory gmTokens = new address[](3);
 		gmTokens[0] = 0x47c031236e19d024b42f8AE6780E44A573170703;  // GM: BTC-USDC
 		gmTokens[1] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336;  // GM: ETH-USDC
+		gmTokens[2] = 0xC25cEf6061Cf5dE5eb761b50E4743c1F5D7E5407;  // GM: ARB-USDC
 
-		GMXV2ACL.CollateralPair[] memory gmPairs = new GMXV2ACL.CollateralPair[](2);
+		GMXV2ACL.CollateralPair[] memory gmPairs = new GMXV2ACL.CollateralPair[](3);
 		gmPairs[0] = GMXV2ACL.CollateralPair({ 
           longCollateral: 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f,  // WBTC
           shortCollateral: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831  // USDC
         });
 		gmPairs[1] = GMXV2ACL.CollateralPair({ 
-          longCollateral: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,  // WBTC
+          longCollateral: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1,  // WETH
+          shortCollateral: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831  // USDC
+        });
+		gmPairs[2] = GMXV2ACL.CollateralPair({ 
+          longCollateral: 0x912CE59144191C1204E64559FE8253a0e49E6548,  // ARB
           shortCollateral: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831  // USDC
         });
 		address[] memory acls = new address[](1);

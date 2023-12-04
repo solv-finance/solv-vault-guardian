@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
@@ -13,6 +13,7 @@ contract GMXV1OpenEndFundGuardTest is GMXV1BaseTest {
 	function setUp() public override {
 		super.setUp();
 		_gmxV1OpenEndFundGuard = new GMXV1OpenEndFundGuard(
+			SAFE_ACCOUNT,
 			SAFE_ACCOUNT,
 			OPEN_END_FUND_MARKET,
 			OPEN_END_FUND_SHARE,
