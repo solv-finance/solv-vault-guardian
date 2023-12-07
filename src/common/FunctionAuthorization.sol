@@ -124,16 +124,16 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         emit AddContractACL(contract_, acl_);
     }
 
-    function _guardCheckTransaction(Type.TxData calldata txData_)
+    function _authorizationCheckTransaction(Type.TxData calldata txData_)
         internal
         virtual
         override
         returns (Type.CheckResult memory result)
     {
-        return _guardCheckTransactionWithRecursion(txData_.to, txData_.data);
+        return _authorizationCheckTransactionWithRecursion(txData_.to, txData_.data);
     }
 
-    function _guardCheckTransactionWithRecursion(address to_, bytes calldata data_)
+    function _authorizationCheckTransactionWithRecursion(address to_, bytes calldata data_)
         internal
         virtual
         returns (Type.CheckResult memory result_)
@@ -170,7 +170,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         while (startIndex < multiSendData.length) {
             (address to, bytes calldata data, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
             if (to != address(0)) {
-                result_ = _guardCheckTransactionWithRecursion(to, data);
+                result_ = _authorizationCheckTransactionWithRecursion(to, data);
                 if (!result_.success) {
                     return result_;
                 }

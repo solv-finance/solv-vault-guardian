@@ -101,7 +101,8 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
         //check authorizations check
         bool passed = false;
         for (uint256 i = 0; i < authorizations.length; i++) {
-            Type.CheckResult memory result = BaseAuthorization(authorizations[i].executor).guardCheckTransaction(txData);
+            Type.CheckResult memory result =
+                BaseAuthorization(authorizations[i].executor).authorizationCheckTransaction(txData);
             //if reture true, then passed
             if (result.success) {
                 passed = true;

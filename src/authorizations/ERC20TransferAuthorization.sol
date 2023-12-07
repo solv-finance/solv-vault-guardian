@@ -15,6 +15,11 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
 
     string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    event TokenAdded(address indexed token);
+    event TokenRemoved(address indexed token);
+    event TokenReceiverAdded(address indexed token, address indexed receiver);
+
     address public safeAccount;
     string[] internal _transferFuncs;
 
@@ -26,18 +31,21 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         address[] receivers;
     }
 
-    constructor(address caller_) FunctionAuthorization(caller_, Governable(caller_).governor()) {
+    constructor(address caller_, TokenReceiver[] memory tokenReceivers_)
+        FunctionAuthorization(caller_, Governable(caller_).governor())
+    {
         _transferFuncs = new string[](1);
         _transferFuncs[0] = ERC20_TRANSFER_FUNC;
+        _addTokenReceiver(tokenReceivers_);
     }
 
-    function _guardCheckTransaction(Type.TxData calldata txData_)
+    function _authorizationCheckTransaction(Type.TxData calldata txData_)
         internal
         virtual
         override
         returns (Type.CheckResult memory result)
     {
-        super._guardCheckTransaction(txData_);
+        super._authorizationCheckTransaction(txData_);
         (address recipient, /*uint256 amount*/ ) = abi.decode(txData_.data[4:], (address, uint256));
         if (txData_.data.length >= 68 && txData_.value == 0) {
             if (_allowedTokenReceivers[txData_.to].contains(recipient)) {
@@ -60,17 +68,34 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
     }
 
     function _addTokenReceiver(TokenReceiver memory tokenReceiver_) internal {
-        _tokenSet.add(tokenReceiver_.token);
-        _addContractFuncs(tokenReceiver_.token, _transferFuncs);
+        if (_tokenSet.add(tokenReceiver_.token)) {
+            _addContractFuncs(tokenReceiver_.token, _transferFuncs);
+            emit TokenAdded(tokenReceiver_.token);
+        }
         for (uint256 i = 0; i < tokenReceiver_.receivers.length; i++) {
-            _allowedTokenReceivers[tokenReceiver_.token].add(tokenReceiver_.receivers[i]);
+            if (_allowedTokenReceivers[tokenReceiver_.token].add(tokenReceiver_.receivers[i])) {
+                emit TokenReceiverAdded(tokenReceiver_.token, tokenReceiver_.receivers[i]);
+            }
         }
     }
 
-    function _removeToken(address token_) internal {
-        _removeContractFuncs(token_, _transferFuncs);
-        _tokenSet.remove(token_);
+    function _removeTokenReceiver(TokenReceiver memory tokenReceivers_) internal {
+        for (uint256 i = 0; i < tokenReceivers_.receivers.length; i++) {
+            if (_allowedTokenReceivers[tokenReceivers_.token].remove(tokenReceivers_.receivers[i])) {
+                emit TokenReceiverAdded(tokenReceivers_.token, tokenReceivers_.receivers[i]);
+            }
+        }
+        if (_allowedTokenReceivers[tokenReceivers_.token].length() == 0) {
+            if (_tokenSet.remove(tokenReceivers_.token)) {
+                _removeContractFuncs(tokenReceivers_.token, _transferFuncs);
+                emit TokenRemoved(tokenReceivers_.token);
+            }
+        }
     }
 
-    function _removeTokenReceiver(TokenReceiver[] memory tokenReceivers_) internal {}
+    function _removeTokenReceiver(TokenReceiver[] memory tokenReceivers_) internal {
+        for (uint256 i = 0; i < tokenReceivers_.length; i++) {
+            _removeTokenReceiver(tokenReceivers_[i]);
+        }
+    }
 }

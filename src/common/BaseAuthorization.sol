@@ -24,14 +24,17 @@ abstract contract BaseAuthorization is Governable {
         // E.g. The expected check method might change and then the Safe would be locked.
     }
 
-    function guardCheckTransaction(Type.TxData calldata txData_)
+    function authorizationCheckTransaction(Type.TxData calldata txData_)
         external
         virtual
         onlyCaller
         returns (Type.CheckResult memory)
     {
-        return _guardCheckTransaction(txData_);
+        return _authorizationCheckTransaction(txData_);
     }
 
-    function _guardCheckTransaction(Type.TxData calldata txData_) internal virtual returns (Type.CheckResult memory);
+    function _authorizationCheckTransaction(Type.TxData calldata txData_)
+        internal
+        virtual
+        returns (Type.CheckResult memory);
 }
