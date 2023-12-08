@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import {Context} from "openzeppelin/utils/Context.sol";
-
-abstract contract Governable is Context {
+abstract contract Governable {
     event NewGovernor(address indexed previousGovernor, address indexed newGovernor);
 
     address public governor;
@@ -15,7 +13,7 @@ abstract contract Governable is Context {
     }
 
     modifier onlyGovernor() {
-        require(governanceAllowed && governor == _msgSender(), "Governable: only governor");
+        require(governanceAllowed && governor == msg.sender, "Governable: only governor");
         _;
     }
 

@@ -9,7 +9,7 @@ import {BaseAuthorization} from "./common/BaseAuthorization.sol";
 import {FunctionAuthorization} from "./common/FunctionAuthorization.sol";
 import "forge-std/console.sol";
 
-contract SolvVaultGuard is Guard, FunctionAuthorization {
+contract SolvVaultGuardiran is Guard, FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Authorization {
@@ -26,7 +26,8 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
     Authorization[] public authorizations;
 
     address public immutable safeAccount;
-    bool public allowSetGuard = true;
+    bool public allowSetGuard = false;
+    bool public allowNativeTokenTransfer = false;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_)
         FunctionAuthorization(address(this), governor_)
@@ -132,4 +133,24 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
     }
 
     function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
+
+    function _checkNativeTransfer(address, /*to_*/ uint256 value_)
+        internal
+        view
+        virtual
+        override
+        returns (Type.CheckResult memory result_)
+    {
+        if (value_ > 0) {
+            result_.success = allowNativeTokenTransfer;
+            if (allowNativeTokenTransfer) {
+                result_.message = "SolvVaultGuard: native token transfer allowed";
+            } else {
+                result_.message = "SolvVaultGuard: native token transfer not allowed";
+            }
+        } else {
+            result_.success = true;
+            result_.message = "FunctionAuthorization: value zero,  native token transfer allowed";
+        }
+    }
 }

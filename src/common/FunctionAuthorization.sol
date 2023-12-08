@@ -28,7 +28,11 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
     constructor(address caller_, address governor_) BaseAuthorization(caller_, governor_) {}
 
-    function addContractFuncs(address contract_, address acl_, string[] memory funcList_) external virtual onlyGovernor {
+    function addContractFuncs(address contract_, address acl_, string[] memory funcList_)
+        external
+        virtual
+        onlyGovernor
+    {
         _addContractFuncs(contract_, funcList_);
         if (acl_ != address(0)) {
             _setContractACL(contract_, acl_);
@@ -39,7 +43,11 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         _removeContractFuncs(contract_, funcList_);
     }
 
-    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
+    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_)
+        external
+        virtual
+        onlyGovernor
+    {
         _addContractFuncsSig(contract_, funcSigList_);
         if (acl_ != address(0)) {
             _setContractACL(contract_, acl_);
@@ -54,15 +62,15 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         _setContractACL(contract_, acl_);
     }
 
-    function getAllContracts() public virtual view returns (address[] memory) {
+    function getAllContracts() public view virtual returns (address[] memory) {
         return _contracts.values();
     }
 
-    function getFunctionsByContract(address contract_) public virtual view returns (bytes32[] memory) {
+    function getFunctionsByContract(address contract_) public view virtual returns (bytes32[] memory) {
         return _allowedContractToFunctions[contract_].values();
     }
 
-    function getACLByContract(address contract_) external virtual view returns (address) {
+    function getACLByContract(address contract_) external view virtual returns (address) {
         return _contractACL[contract_];
     }
 
@@ -139,17 +147,20 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         override
         returns (Type.CheckResult memory result)
     {
-        return _authorizationCheckTransactionWithRecursion(txData_.to, txData_.data);
+        return _authorizationCheckTransactionWithRecursion(txData_.to, txData_.data, txData_.value);
     }
 
-    function _authorizationCheckTransactionWithRecursion(address to_, bytes calldata data_)
+    function _authorizationCheckTransactionWithRecursion(address to_, bytes calldata data_, uint256 value_)
         internal
         virtual
         returns (Type.CheckResult memory result_)
     {
+        if (data_.length == 0) {
+            _checkNativeTransfer(to_, value_);
+        }
         bytes4 selector = _getSelector(data_);
 
-        if (selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
+        if (_isAllowedSelector(to_, selector) && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
             result_ = _checkMultiSend(data_);
         } else {
             if (data_.length < 4) {
@@ -179,7 +190,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         while (startIndex < multiSendData.length) {
             (address to, bytes calldata data, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
             if (to != address(0)) {
-                result_ = _authorizationCheckTransactionWithRecursion(to, data);
+                result_ = _authorizationCheckTransactionWithRecursion(to, data, 0);
                 if (!result_.success) {
                     return result_;
                 }
@@ -193,8 +204,8 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
     function _unpackMultiSend(bytes calldata transactions_, uint256 startIndex_)
         internal
-        virtual
         pure
+        virtual
         returns (address to_, bytes calldata data_, uint256 endIndex_)
     {
         uint256 offset = 0;
@@ -222,13 +233,29 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         return (to_, data_, endIndex_);
     }
 
-    function _isAllowedSelector(address target_, bytes4 selector_) internal virtual view returns (bool) {
+    function _isAllowedSelector(address target_, bytes4 selector_) internal view virtual returns (bool) {
         return _allowedContractToFunctions[target_].contains(selector_);
     }
 
-    function _getSelector(bytes calldata data_) internal virtual pure returns (bytes4 selector_) {
+    function _getSelector(bytes calldata data_) internal pure virtual returns (bytes4 selector_) {
         assembly {
             selector_ := calldataload(data_.offset)
+        }
+    }
+
+    //if allow transfer ETH, must override this function
+    function _checkNativeTransfer(address, /*to_*/ uint256 value_)
+        internal
+        view
+        virtual
+        returns (Type.CheckResult memory result_)
+    {
+        if (value_ > 0) {
+            result_.success = false;
+            result_.message = "FunctionAuthorization: NativeToken receiver not allowed";
+        } else {
+            result_.success = true;
+            result_.message = "FunctionAuthorization: value zero, allowed";
         }
     }
 }

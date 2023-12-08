@@ -103,8 +103,14 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         override
         returns (Type.CheckResult memory result)
     {
+        if (txData_.data.length < 68) {
+            result.success = false;
+            result.message = "ERC20TransferAuthorization: not ERC20 Transfer";
+            return result;
+        }
+
         (address recipient, /*uint256 amount*/ ) = abi.decode(txData_.data[4:], (address, uint256));
-        
+
         if (txData_.data.length >= 68 && txData_.value == 0) {
             result = super._authorizationCheckTransaction(txData_);
             if (result.success) {
@@ -113,17 +119,9 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
                     result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
                 }
             }
-            
-        } else if (txData_.data.length == 0 && txData_.value > 0) {
-            if (_allowedTokenReceivers[ETH].contains(recipient)) {
-                result.success = true;
-                result.message = "ERC20TransferAuthorization: ETH receiver not allowed";
-            }
-
         } else {
             result.success = false;
             result.message = "ERC20TransferAuthorization: transfer not allowed";
         }
     }
-
 }
