@@ -67,6 +67,6 @@ abstract contract GMXV2Authorization is FunctionAuthorization {
             new GMXV2AuthorizationACL(address(this), safeAccount_, exchangeRouter_, 
             depositVault_, withdrawalVault_, gmTokens, gmPairs)
         );
-        _addContractACL(exchangeRouter_, acl);
+        _setContractACL(exchangeRouter_, acl);
     }
 }

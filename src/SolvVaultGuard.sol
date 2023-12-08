@@ -15,8 +15,13 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
     struct Authorization {
         string name;
         address executor;
-        bool enable;
+        bool enabled;
     }
+
+    event AllowSetGuard(bool isSetGuardAllowed_);
+    event AddAuthorization(string indexed name, address indexed executor_, bool enabled_);
+    event RemoveAuthorization(string indexed name, address indexed executor_, bool enabled_);
+    event SetAuthorization(string indexed name, address indexed executor_, bool enabled_);
 
     Authorization[] public authorizations;
 
@@ -31,42 +36,55 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
         safeMultiSendFuncs[0] = FunctionAuthorization.SAFE_MULITSEND_FUNC_MULTI_SEND;
         _addContractFuncs(safeMultiSend_, safeMultiSendFuncs);
         Authorization memory self =
-            Authorization({name: "SolvVaultGuard_GeneralAuthorization", executor: address(this), enable: true});
+            Authorization({name: "SolvVaultGuard_GeneralAuthorization", executor: address(this), enabled: true});
         authorizations.push(self);
     }
 
-    function setGuardAllowed(bool allowed_) external onlyGovernor {
+    function setGuardAllowed(bool allowed_) external virtual onlyGovernor {
         allowSetGuard = allowed_;
+        emit AllowSetGuard(allowed_);
     }
 
-    function addAuthorizations(Authorization[] calldata authorizations_) external onlyGovernor {
+    function addAuthorizations(Authorization[] calldata authorizations_) external virtual onlyGovernor {
         for (uint256 i = 0; i < authorizations_.length; i++) {
-            Authorization memory authorization = authorizations_[i];
-            //check excutor is not exist
-            for (uint256 j = 0; j < authorizations.length; j++) {
-                require(authorizations[j].executor != authorization.executor, "SolvVaultGuard: guard already exist");
-            }
-            authorizations.push(authorization);
+            _addAuthorization(authorizations_[i]);
         }
     }
 
-    function removeAuthorizations(address[] calldata executors_) external onlyGovernor {
+    function removeAuthorizations(address[] calldata executors_) external virtual onlyGovernor {
         for (uint256 i = 0; i < executors_.length; i++) {
-            address executor = executors_[i];
-            for (uint256 j = 0; j < authorizations.length; j++) {
-                if (authorizations[j].executor == executor) {
-                    authorizations[j] = authorizations[authorizations.length - 1];
-                    authorizations.pop();
-                    break;
-                }
+            _removeAuthorization(executors_[i]);
+        }
+    }
+
+    function setAuthorizationEnabled(address executor_, bool enabled_) external virtual onlyGovernor {
+        _setAuthorizationEnabled(executor_, enabled_);
+    }
+
+    function _addAuthorization(Authorization memory _authorization) internal virtual {
+        for (uint256 i = 0; i < authorizations.length; i++) {
+            require(authorizations[i].executor != _authorization.executor, "SolvVaultGuard: guard already exist");
+        }
+        authorizations.push(_authorization);
+        emit AddAuthorization(_authorization.name, _authorization.executor, _authorization.enabled);
+    }
+
+    function _removeAuthorization(address _executor) internal virtual {
+        for (uint256 i = 0; i < authorizations.length; i++) {
+            if (authorizations[i].executor == _executor) {
+                emit RemoveAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
+                authorizations[i] = authorizations[authorizations.length - 1];
+                authorizations.pop();
+                break;
             }
         }
     }
 
-    function enableAuthorization(address executor_, bool enable_) external onlyGovernor {
+    function _setAuthorizationEnabled(address executor_, bool enabled_) internal virtual {
         for (uint256 i = 0; i < authorizations.length; i++) {
             if (authorizations[i].executor == executor_) {
-                authorizations[i].enable = enable_;
+                authorizations[i].enabled = enabled_;
+                emit SetAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
                 break;
             }
         }
@@ -84,7 +102,7 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
         address payable, /*refundReceiver*/
         bytes memory, /*signatures*/
         address msgSender
-    ) external override {
+    ) external virtual override {
         if (to == safeAccount && data.length == 0) {
             console.logString("SolvVaultGuard: checkTransaction: safeWallet");
             return;
@@ -99,19 +117,19 @@ contract SolvVaultGuard is Guard, FunctionAuthorization {
         }
 
         //check authorizations check
-        bool passed = false;
         for (uint256 i = 0; i < authorizations.length; i++) {
-            Type.CheckResult memory result =
-                BaseAuthorization(authorizations[i].executor).authorizationCheckTransaction(txData);
-            //if reture true, then passed
-            if (result.success) {
-                passed = true;
-                break;
+            if (authorizations[i].enabled) {
+                Type.CheckResult memory result =
+                    BaseAuthorization(authorizations[i].executor).authorizationCheckTransaction(txData);
+                //if return true, then passed
+                if (result.success) {
+                    return;
+                }
             }
         }
 
-        require(passed, "SolvVaultGuard: checkTransaction: check failed");
+        revert("SolvVaultGuard: checkTransaction: check failed");
     }
 
-    function checkAfterExecution(bytes32 txHash, bool success) external override {}
+    function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
 }

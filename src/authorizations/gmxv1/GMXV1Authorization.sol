@@ -55,6 +55,6 @@ contract GMXV1Authorization is FunctionAuthorization {
         }
 
         address acl = address(new GMXV1AuthorizationACL(address(this), safeAccount_, tokens));
-        _addContractACL(GMX_REWAED_ROUTER_V2, acl);
+        _setContractACL(GMX_REWAED_ROUTER_V2, acl);
     }
 }

@@ -19,7 +19,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     event AddContractFuncSig(address indexed contract_, bytes4 indexed funcSig_, address indexed sender_);
     event RemoveContractFunc(address indexed contract_, string func_, address indexed sender_);
     event RemoveContractFuncSig(address indexed contract_, bytes4 indexed funcSig_, address indexed sender_);
-    event AddContractACL(address indexed contract_, address indexed acl_);
+    event SetContractACL(address indexed contract_, address indexed acl_, address indexed sender_);
 
     EnumerableSet.AddressSet internal _contracts;
     mapping(address => EnumerableSet.Bytes32Set) internal _allowedContractToFunctions;
@@ -28,38 +28,45 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
     constructor(address caller_, address governor_) BaseAuthorization(caller_, governor_) {}
 
-    function addContractFunc(address contract_, address acl_, string[] memory funcList_) external onlyGovernor {
+    function addContractFuncs(address contract_, address acl_, string[] memory funcList_) external virtual onlyGovernor {
         _addContractFuncs(contract_, funcList_);
         if (acl_ != address(0)) {
-            _addContractACL(contract_, acl_);
+            _setContractACL(contract_, acl_);
         }
     }
 
-    function removeContractFunc(address contract_, string[] calldata funcList_) external onlyGovernor {
+    function removeContractFuncs(address contract_, string[] calldata funcList_) external virtual onlyGovernor {
         _removeContractFuncs(contract_, funcList_);
     }
 
-    function addContractACL(address contract_, address acl_) external onlyGovernor {
-        _addContractACL(contract_, acl_);
+    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
+        _addContractFuncsSig(contract_, funcSigList_);
+        if (acl_ != address(0)) {
+            _setContractACL(contract_, acl_);
+        }
     }
 
-    function removeContractACL(address contract_) external onlyGovernor {
-        _contractACL[contract_] = address(0);
+    function removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
+        _removeContractFuncsSig(contract_, funcSigList_);
     }
 
-    function getAllContracts() public view returns (address[] memory) {
+    function setContractACL(address contract_, address acl_) external virtual onlyGovernor {
+        _setContractACL(contract_, acl_);
+    }
+
+    function getAllContracts() public virtual view returns (address[] memory) {
         return _contracts.values();
     }
 
-    function getFunctionsByContract(address contract_) public view returns (bytes32[] memory) {
+    function getFunctionsByContract(address contract_) public virtual view returns (bytes32[] memory) {
         return _allowedContractToFunctions[contract_].values();
     }
 
-    function getACLByContract(address contract_) external view returns (address) {
+    function getACLByContract(address contract_) external virtual view returns (address) {
         return _contractACL[contract_];
     }
 
-    function _addContractFuncs(address contract_, string[] memory funcList_) internal {
+    function _addContractFuncs(address contract_, string[] memory funcList_) internal virtual {
         require(funcList_.length > 0, "FunctionAuthorization: empty funcList");
 
         for (uint256 index = 0; index < funcList_.length; index++) {
@@ -74,7 +81,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         _contracts.add(contract_);
     }
 
-    function _addContractFuncsSig(address contract_, bytes4[] memory funcSigList_) internal {
+    function _addContractFuncsSig(address contract_, bytes4[] memory funcSigList_) internal virtual {
         require(funcSigList_.length > 0, "FunctionAuthorization: empty funcList");
 
         for (uint256 index = 0; index < funcSigList_.length; index++) {
@@ -87,7 +94,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         _contracts.add(contract_);
     }
 
-    function _removeContractFuncs(address contract_, string[] memory funcList_) internal {
+    function _removeContractFuncs(address contract_, string[] memory funcList_) internal virtual {
         require(funcList_.length > 0, "FunctionAuthorization: empty funcList");
 
         for (uint256 index = 0; index < funcList_.length; index++) {
@@ -100,11 +107,12 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
 
         if (_allowedContractToFunctions[contract_].length() == 0) {
+            delete _contractACL[contract_];
             _contracts.remove(contract_);
         }
     }
 
-    function _removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) internal {
+    function _removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) internal virtual {
         require(funcSigList_.length > 0, "FunctionAuthorization: empty funcList");
 
         for (uint256 index = 0; index < funcSigList_.length; index++) {
@@ -115,13 +123,14 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
 
         if (_allowedContractToFunctions[contract_].length() == 0) {
+            delete _contractACL[contract_];
             _contracts.remove(contract_);
         }
     }
 
-    function _addContractACL(address contract_, address acl_) internal {
+    function _setContractACL(address contract_, address acl_) internal virtual {
         _contractACL[contract_] = acl_;
-        emit AddContractACL(contract_, acl_);
+        emit SetContractACL(contract_, acl_, msg.sender);
     }
 
     function _authorizationCheckTransaction(Type.TxData calldata txData_)
@@ -162,7 +171,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
     }
 
-    function _checkMultiSend(bytes calldata transactions_) internal returns (Type.CheckResult memory result_) {
+    function _checkMultiSend(bytes calldata transactions_) internal virtual returns (Type.CheckResult memory result_) {
         uint256 offset = 4 + 32;
         uint256 multiSendDataLength = uint256(bytes32(transactions_[offset:offset + 32]));
         bytes calldata multiSendData = transactions_[offset + 32:offset + 32 + multiSendDataLength];
@@ -184,6 +193,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
     function _unpackMultiSend(bytes calldata transactions_, uint256 startIndex_)
         internal
+        virtual
         pure
         returns (address to_, bytes calldata data_, uint256 endIndex_)
     {
@@ -212,11 +222,11 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         return (to_, data_, endIndex_);
     }
 
-    function _isAllowedSelector(address target_, bytes4 selector_) internal view returns (bool) {
+    function _isAllowedSelector(address target_, bytes4 selector_) internal virtual view returns (bool) {
         return _allowedContractToFunctions[target_].contains(selector_);
     }
 
-    function _getSelector(bytes calldata data_) internal pure returns (bytes4 selector_) {
+    function _getSelector(bytes calldata data_) internal virtual pure returns (bytes4 selector_) {
         assembly {
             selector_ := calldataload(data_.offset)
         }

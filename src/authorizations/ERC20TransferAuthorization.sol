@@ -23,20 +23,78 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
     address public safeAccount;
     string[] internal _transferFuncs;
 
-    EnumerableSet.AddressSet _tokenSet;
+    EnumerableSet.AddressSet internal _tokenSet;
     mapping(address => EnumerableSet.AddressSet) internal _allowedTokenReceivers;
 
-    struct TokenReceiver {
+    struct TokenReceivers {
         address token;
         address[] receivers;
     }
 
-    constructor(address caller_, TokenReceiver[] memory tokenReceivers_)
+    constructor(address caller_, TokenReceivers[] memory tokenReceivers_)
         FunctionAuthorization(caller_, Governable(caller_).governor())
     {
         _transferFuncs = new string[](1);
         _transferFuncs[0] = ERC20_TRANSFER_FUNC;
-        _addTokenReceiver(tokenReceivers_);
+        _addTokenReceivers(tokenReceivers_);
+    }
+
+    function addTokenReceivers(TokenReceivers[] calldata tokenReceiversList_) external virtual onlyGovernor {
+        _addTokenReceivers(tokenReceiversList_);
+    }
+
+    function removeTokenReceivers(TokenReceivers[] calldata tokenReceiversList_) external virtual onlyGovernor {
+        _removeTokenReceivers(tokenReceiversList_);
+    }
+
+    function _addTokenReceivers(TokenReceivers[] memory _tokenReceiversList) internal virtual {
+        for (uint256 i = 0; i < _tokenReceiversList.length; i++) {
+            _addTokenReceivers(_tokenReceiversList[i]);
+        }
+    }
+
+    function _removeTokenReceivers(TokenReceivers[] memory _tokenReceiversList) internal virtual {
+        for (uint256 i = 0; i < _tokenReceiversList.length; i++) {
+            _removeTokenReceivers(_tokenReceiversList[i]);
+        }
+    }
+
+    function _addTokenReceivers(TokenReceivers memory _tokenReceivers) internal virtual {
+        address token = _tokenReceivers.token;
+        address[] memory receivers = _tokenReceivers.receivers;
+        if (_tokenSet.add(token)) {
+            _addContractFuncs(token, _transferFuncs);
+            emit TokenAdded(token);
+        }
+        for (uint256 i = 0; i < receivers.length; i++) {
+            if (_allowedTokenReceivers[token].add(receivers[i])) {
+                emit TokenReceiverAdded(token, receivers[i]);
+            }
+        }
+    }
+
+    function _removeTokenReceivers(TokenReceivers memory _tokenReceivers) internal virtual {
+        address token = _tokenReceivers.token;
+        address[] memory receivers = _tokenReceivers.receivers;
+        for (uint256 i = 0; i < receivers.length; i++) {
+            if (_allowedTokenReceivers[token].remove(receivers[i])) {
+                emit TokenReceiverAdded(token, receivers[i]);
+            }
+        }
+        if (_allowedTokenReceivers[token].length() == 0) {
+            if (_tokenSet.remove(token)) {
+                _removeContractFuncs(token, _transferFuncs);
+                emit TokenRemoved(token);
+            }
+        }
+    }
+
+    function getAllTokens() external view returns (address[] memory) {
+        return _tokenSet.values();
+    }
+
+    function getTokenReceivers(address token) external view returns (address[] memory) {
+        return _allowedTokenReceivers[token].values();
     }
 
     function _authorizationCheckTransaction(Type.TxData calldata txData_)
@@ -45,57 +103,27 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         override
         returns (Type.CheckResult memory result)
     {
-        super._authorizationCheckTransaction(txData_);
         (address recipient, /*uint256 amount*/ ) = abi.decode(txData_.data[4:], (address, uint256));
+        
         if (txData_.data.length >= 68 && txData_.value == 0) {
-            if (_allowedTokenReceivers[txData_.to].contains(recipient)) {
-                result.success = true;
+            result = super._authorizationCheckTransaction(txData_);
+            if (result.success) {
+                if (!_allowedTokenReceivers[txData_.to].contains(recipient)) {
+                    result.success = false;
+                    result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
+                }
             }
+            
         } else if (txData_.data.length == 0 && txData_.value > 0) {
             if (_allowedTokenReceivers[ETH].contains(recipient)) {
                 result.success = true;
+                result.message = "ERC20TransferAuthorization: ETH receiver not allowed";
             }
+
         } else {
             result.success = false;
-            result.message = "ERC20TransferAuthorization: not allowed token receiver";
+            result.message = "ERC20TransferAuthorization: transfer not allowed";
         }
     }
 
-    function _addTokenReceiver(TokenReceiver[] memory tokenReceivers_) internal {
-        for (uint256 i = 0; i < tokenReceivers_.length; i++) {
-            _addTokenReceiver(tokenReceivers_[i]);
-        }
-    }
-
-    function _addTokenReceiver(TokenReceiver memory tokenReceiver_) internal {
-        if (_tokenSet.add(tokenReceiver_.token)) {
-            _addContractFuncs(tokenReceiver_.token, _transferFuncs);
-            emit TokenAdded(tokenReceiver_.token);
-        }
-        for (uint256 i = 0; i < tokenReceiver_.receivers.length; i++) {
-            if (_allowedTokenReceivers[tokenReceiver_.token].add(tokenReceiver_.receivers[i])) {
-                emit TokenReceiverAdded(tokenReceiver_.token, tokenReceiver_.receivers[i]);
-            }
-        }
-    }
-
-    function _removeTokenReceiver(TokenReceiver memory tokenReceivers_) internal {
-        for (uint256 i = 0; i < tokenReceivers_.receivers.length; i++) {
-            if (_allowedTokenReceivers[tokenReceivers_.token].remove(tokenReceivers_.receivers[i])) {
-                emit TokenReceiverAdded(tokenReceivers_.token, tokenReceivers_.receivers[i]);
-            }
-        }
-        if (_allowedTokenReceivers[tokenReceivers_.token].length() == 0) {
-            if (_tokenSet.remove(tokenReceivers_.token)) {
-                _removeContractFuncs(tokenReceivers_.token, _transferFuncs);
-                emit TokenRemoved(tokenReceivers_.token);
-            }
-        }
-    }
-
-    function _removeTokenReceiver(TokenReceiver[] memory tokenReceivers_) internal {
-        for (uint256 i = 0; i < tokenReceivers_.length; i++) {
-            _removeTokenReceiver(tokenReceivers_[i]);
-        }
-    }
 }

@@ -41,6 +41,6 @@ contract SolvOpenEndFundAuthorization is FunctionAuthorization {
         _addContractFuncs(openEndFundRedemption_, openEndFundRedemptionFuncs);
 
         address acl = address(new SolvOpenEndFundAuthorizationACL(caller_, openEndFundRedemption_, repayablePoolIds_));
-        _addContractACL(openEndFundShare_, acl);
+        _setContractACL(openEndFundShare_, acl);
     }
 }

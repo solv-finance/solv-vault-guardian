@@ -135,39 +135,11 @@ contract GMXV2AuthorizationACL is BaseACL {
         }
     }
 
-    function sendWnt(
-        address,
-        /**
-         * receiver
-         */
-        uint256
-    )
-        /**
-         * amount
-         */
-        external
-        pure
-    {
+    function sendWnt(address /* receiver */, uint256 /* amount */) external pure {
         revert("sendWnt not allowed");
     }
 
-    function sendTokens(
-        address,
-        /**
-         * token
-         */
-        address,
-        /**
-         * receiver
-         */
-        uint256
-    )
-        /**
-         * amount
-         */
-        external
-        pure
-    {
+    function sendTokens(address /* token */, address /* receiver */, uint256 /* amount */) external pure {
         revert("sendTokens not allowed");
     }
 
