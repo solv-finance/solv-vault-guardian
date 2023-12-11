@@ -9,7 +9,7 @@ import {BaseAuthorization} from "./common/BaseAuthorization.sol";
 import {FunctionAuthorization} from "./common/FunctionAuthorization.sol";
 import "forge-std/console.sol";
 
-contract SolvVaultGuardiran is Guard, FunctionAuthorization {
+contract SolvVaultGuardian is Guard, FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Authorization {
@@ -22,12 +22,16 @@ contract SolvVaultGuardiran is Guard, FunctionAuthorization {
     event AddAuthorization(string indexed name, address indexed executor_, bool enabled_);
     event RemoveAuthorization(string indexed name, address indexed executor_, bool enabled_);
     event SetAuthorization(string indexed name, address indexed executor_, bool enabled_);
+    event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed_);
+    event AddNativeTokenReceiver(address indexed receiver_);
+    event RemoveNativeTokenReceiver(address indexed receiver_);
 
     Authorization[] public authorizations;
 
     address public immutable safeAccount;
     bool public allowSetGuard = false;
     bool public allowNativeTokenTransfer = false;
+    mapping(address => bool) public nativeTokenReceiver;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_)
         FunctionAuthorization(address(this), governor_)
@@ -44,6 +48,25 @@ contract SolvVaultGuardiran is Guard, FunctionAuthorization {
     function setGuardAllowed(bool allowed_) external virtual onlyGovernor {
         allowSetGuard = allowed_;
         emit AllowSetGuard(allowed_);
+    }
+
+    function setNativeTokenTransferAllowed(bool allowed_) external virtual onlyGovernor {
+        allowNativeTokenTransfer = allowed_;
+        emit SetNativeTokenTransferAllowed(allowed_);
+    }
+
+    function addNativeTokenReceiver(address[] calldata receivers_) external virtual onlyGovernor {
+        for (uint256 i = 0; i < receivers_.length; i++) {
+            nativeTokenReceiver[receivers_[i]] = true;
+            emit AddNativeTokenReceiver(receivers_[i]);
+        }
+    }
+
+    function removeNativeTokenReceiver(address[] calldata receivers_) external virtual onlyGovernor {
+        for (uint256 i = 0; i < receivers_.length; i++) {
+            nativeTokenReceiver[receivers_[i]] = false;
+            emit RemoveNativeTokenReceiver(receivers_[i]);
+        }
     }
 
     function addAuthorizations(Authorization[] calldata authorizations_) external virtual onlyGovernor {
@@ -134,17 +157,23 @@ contract SolvVaultGuardiran is Guard, FunctionAuthorization {
 
     function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
 
-    function _checkNativeTransfer(address, /*to_*/ uint256 value_)
+    function _checkNativeTransfer(address to_, uint256 value_)
         internal
         view
         virtual
         override
         returns (Type.CheckResult memory result_)
     {
+        console.logString("SolvVaultGuard: _checkNativeTransfer");
         if (value_ > 0) {
-            result_.success = allowNativeTokenTransfer;
             if (allowNativeTokenTransfer) {
-                result_.message = "SolvVaultGuard: native token transfer allowed";
+                if (nativeTokenReceiver[to_]) {
+                    result_.success = true;
+                    result_.message = "SolvVaultGuard: native token transfer allowed";
+                } else {
+                    result_.success = false;
+                    result_.message = "SolvVaultGuard: native token transfer not allowed";
+                }
             } else {
                 result_.message = "SolvVaultGuard: native token transfer not allowed";
             }

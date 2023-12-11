@@ -156,7 +156,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         returns (Type.CheckResult memory result_)
     {
         if (data_.length == 0) {
-            _checkNativeTransfer(to_, value_);
+            return _checkNativeTransfer(to_, value_);
         }
         bytes4 selector = _getSelector(data_);
 
