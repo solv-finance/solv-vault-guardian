@@ -7,7 +7,7 @@ import {FunctionAuthorization} from "../../common/FunctionAuthorization.sol";
 import {GMXV2AuthorizationACL} from "./GMXV2AuthorizationACL.sol";
 import "forge-std/console.sol";
 
-abstract contract GMXV2Authorization is FunctionAuthorization {
+contract GMXV2Authorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
@@ -17,7 +17,7 @@ abstract contract GMXV2Authorization is FunctionAuthorization {
      * On Arbitrum
      * gmxExchangeRouter: 0x7C68C7866A64FA2160F78EEaE12217FFbf871fa8
      * gmxDepositVault: 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55
-     * gmxWithdrawalVaul: 0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55
+     * gmxWithdrawalVault: 0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55
      */
     constructor(
         address caller_,
@@ -34,12 +34,11 @@ abstract contract GMXV2Authorization is FunctionAuthorization {
         tokensFuncs[0] = ERC20_APPROVE_FUNC;
         tokensFuncs[1] = ERC20_TRANSFER_FUNC;
 
-        address[] memory tokens = new address[](5);
-        tokens[0] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // ETH
-        tokens[1] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; // USDC
-        tokens[2] = 0x47c031236e19d024b42f8AE6780E44A573170703; // GM: BTC-USDC
-        tokens[3] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336; // GM: ETH-USDC
-        tokens[4] = 0xC25cEf6061Cf5dE5eb761b50E4743c1F5D7E5407; // GM: ARB-USDC
+        address[] memory tokens = new address[](4);
+        tokens[0] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; // USDC
+        tokens[1] = 0x47c031236e19d024b42f8AE6780E44A573170703; // GM: BTC-USDC
+        tokens[2] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336; // GM: ETH-USDC
+        tokens[3] = 0xC25cEf6061Cf5dE5eb761b50E4743c1F5D7E5407; // GM: ARB-USDC
         for (uint256 i = 0; i < tokens.length; i++) {
             _addContractFuncs(tokens[i], tokensFuncs);
         }

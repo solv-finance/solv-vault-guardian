@@ -11,7 +11,7 @@ import "../../src/authorizations/ERC20TransferAuthorization.sol";
 contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor);
+        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         super._setSafeGuard();
     }
 

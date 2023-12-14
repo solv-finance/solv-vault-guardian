@@ -7,6 +7,7 @@ import {Type} from "../common/Type.sol";
 import {BaseAuthorization} from "../common/BaseAuthorization.sol";
 import {BaseACL} from "../common/BaseACL.sol";
 import {Multicall} from "../utils/Multicall.sol";
+import "forge-std/console.sol";
 
 abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -147,10 +148,10 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         override
         returns (Type.CheckResult memory result)
     {
-        return _authorizationCheckTransactionWithRecursion(txData_.to, txData_.data, txData_.value);
+        return _authorizationCheckTransactionWithRecursion(txData_.from, txData_.to, txData_.data, txData_.value);
     }
 
-    function _authorizationCheckTransactionWithRecursion(address to_, bytes calldata data_, uint256 value_)
+    function _authorizationCheckTransactionWithRecursion(address from_, address to_, bytes calldata data_, uint256 value_)
         internal
         virtual
         returns (Type.CheckResult memory result_)
@@ -161,7 +162,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         bytes4 selector = _getSelector(data_);
 
         if (_isAllowedSelector(to_, selector) && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
-            result_ = _checkMultiSend(data_);
+            result_ = _checkMultiSend(from_, to_, data_, value_);
         } else {
             if (data_.length < 4) {
                 result_.success = false;
@@ -172,7 +173,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
                 result_.success = true;
                 //if allowed, check acl
                 if (_contractACL[to_] != address(0)) {
-                    result_ = BaseACL(_contractACL[to_]).preCheck(data_);
+                    result_ = BaseACL(_contractACL[to_]).preCheck(from_, to_, data_, value_);
                 }
 
                 return result_;
@@ -182,15 +183,14 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
     }
 
-    function _checkMultiSend(bytes calldata transactions_) internal virtual returns (Type.CheckResult memory result_) {
-        uint256 offset = 4 + 32;
-        uint256 multiSendDataLength = uint256(bytes32(transactions_[offset:offset + 32]));
-        bytes calldata multiSendData = transactions_[offset + 32:offset + 32 + multiSendDataLength];
+    function _checkMultiSend(address from_, address /* to_ */, bytes calldata transactions_, uint256 /* value_ */) internal virtual returns (Type.CheckResult memory result_) {
+        uint256 multiSendDataLength = uint256(bytes32(transactions_[4 + 32 : 4 + 32 + 32]));
+        bytes calldata multiSendData = transactions_[4 + 32 + 32: 4 + 32 + 32 + multiSendDataLength];
         uint256 startIndex = 0;
         while (startIndex < multiSendData.length) {
-            (address to, bytes calldata data, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
+            (address to, uint256 value, bytes calldata data, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
             if (to != address(0)) {
-                result_ = _authorizationCheckTransactionWithRecursion(to, data, 0);
+                result_ = _authorizationCheckTransactionWithRecursion(from_, to, data, value);
                 if (!result_.success) {
                     return result_;
                 }
@@ -206,7 +206,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         internal
         pure
         virtual
-        returns (address to_, bytes calldata data_, uint256 endIndex_)
+        returns (address to_, uint256 value_, bytes calldata data_, uint256 endIndex_)
     {
         uint256 offset = 0;
         uint256 length = 1;
@@ -219,6 +219,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
         //value 32 bytes
         length = 32;
+        value_ = uint256(bytes32(transactions_[startIndex_ + offset:startIndex_ + offset + length]));
         offset += length;
 
         //datalength 32 bytes
@@ -230,7 +231,6 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         data_ = transactions_[startIndex_ + offset:startIndex_ + offset + dataLength];
 
         endIndex_ = startIndex_ + offset + dataLength;
-        return (to_, data_, endIndex_);
     }
 
     function _isAllowedSelector(address target_, bytes4 selector_) internal view virtual returns (bool) {
@@ -243,19 +243,15 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
     }
 
-    //if allow transfer ETH, must override this function
-    function _checkNativeTransfer(address, /*to_*/ uint256 value_)
+    // to allow native token transferring, must override this function
+    function _checkNativeTransfer(address /* to */, uint256 /* value_ */)
         internal
         view
         virtual
         returns (Type.CheckResult memory result_)
     {
-        if (value_ > 0) {
-            result_.success = false;
-            result_.message = "FunctionAuthorization: NativeToken receiver not allowed";
-        } else {
-            result_.success = true;
-            result_.message = "FunctionAuthorization: value zero, allowed";
-        }
+        result_.success = false;
+        result_.message = "FunctionAuthorization: native token transfer not allowed";
     }
 }
+

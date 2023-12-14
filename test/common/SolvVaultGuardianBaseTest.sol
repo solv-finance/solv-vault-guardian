@@ -16,6 +16,7 @@ abstract contract SolvVaultGuardianBaseTest is Test {
     address public constant CEX_RECHARGE_ADDRESS = 0xd1B4ea4A0e176292D667695FC7674F845009b32E;
 
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public constant WBTC = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
     address public constant USDT = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
     address public constant USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
@@ -26,6 +27,8 @@ abstract contract SolvVaultGuardianBaseTest is Test {
     uint256 internal _privKeyForOwnerOfSafe;
     SolvVaultGuardian internal _guardian;
 
+    bytes internal _revertMessage;
+
     function setUp() public virtual {
         safeAccount = payable(vm.envAddress("SAFE_ACCOUNT"));
         governor = vm.envAddress("GOVERNOR");
@@ -35,11 +38,15 @@ abstract contract SolvVaultGuardianBaseTest is Test {
     }
 
     function _setSafeGuard() internal {
-        require(address(_guardian) != address(0), "SolvVaultGuardianBaseTest: guardian is not set");
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), _guardian);
         vm.startPrank(ownerOfSafe);
         _callExecTransaction(safeAccount, 0, data, Enum.Operation.Call);
         vm.stopPrank();
+    }
+
+    function _erc20Approve(address token_, address spender_, uint256 amount_) internal {
+        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("approve(address,uint256)")), spender_, amount_);
+        _callExecTransaction(token_, 0, data, Enum.Operation.Call);
     }
 
     function _erc20Transfer(address token_, address to_, uint256 amount_) internal {
@@ -49,6 +56,18 @@ abstract contract SolvVaultGuardianBaseTest is Test {
 
     function _nativeTokenTransfer(address to_, uint256 amount_) internal {
         _callExecTransaction(to_, amount_, "", Enum.Operation.Call);
+    }
+
+    function _callExecTransaction(address contract_, uint256 value_, bytes memory data_, Enum.Operation operation_)
+        internal
+    {
+        bytes memory signature = _getSignature(contract_, value_, data_, operation_);
+        if (_revertMessage.length > 0) {
+            vm.expectRevert(_revertMessage);
+        }
+        _guardian.checkTransaction(
+            contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature, ownerOfSafe
+        );
     }
 
     function _getSignature(address contract_, uint256 value_, bytes memory data_, Enum.Operation operation_)
@@ -63,14 +82,5 @@ abstract contract SolvVaultGuardianBaseTest is Test {
         bytes32 txHash = keccak256(txHashData);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_privKeyForOwnerOfSafe, txHash);
         return bytes.concat(r, s, bytes1(v));
-    }
-
-    function _callExecTransaction(address contract_, uint256 value_, bytes memory data_, Enum.Operation operation_)
-        internal
-    {
-        bytes memory signature = _getSignature(contract_, value_, data_, operation_);
-        GnosisSafeL2(safeAccount).execTransaction(
-            contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature
-        );
     }
 }

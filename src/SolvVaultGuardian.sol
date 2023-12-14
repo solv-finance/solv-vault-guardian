@@ -29,14 +29,17 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
     Authorization[] public authorizations;
 
     address public immutable safeAccount;
-    bool public allowSetGuard = false;
-    bool public allowNativeTokenTransfer = false;
+    bool public allowSetGuard;
+    bool public allowNativeTokenTransfer;
     mapping(address => bool) public nativeTokenReceiver;
 
-    constructor(address safeAccount_, address safeMultiSend_, address governor_)
+    constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
         FunctionAuthorization(address(this), governor_)
     {
         safeAccount = safeAccount_;
+        _setGuardAllowed(allowSetGuard_);
+        _setNativeTokenTransferAllowed(false);
+
         string[] memory safeMultiSendFuncs = new string[](1);
         safeMultiSendFuncs[0] = FunctionAuthorization.SAFE_MULITSEND_FUNC_MULTI_SEND;
         _addContractFuncs(safeMultiSend_, safeMultiSendFuncs);
@@ -46,11 +49,19 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
     }
 
     function setGuardAllowed(bool allowed_) external virtual onlyGovernor {
+        _setGuardAllowed(allowed_);
+    }
+
+    function _setGuardAllowed(bool allowed_) internal virtual {
         allowSetGuard = allowed_;
         emit AllowSetGuard(allowed_);
     }
 
     function setNativeTokenTransferAllowed(bool allowed_) external virtual onlyGovernor {
+        _setNativeTokenTransferAllowed(allowed_);
+    }
+
+    function _setNativeTokenTransferAllowed(bool allowed_) internal virtual {
         allowNativeTokenTransfer = allowed_;
         emit SetNativeTokenTransferAllowed(allowed_);
     }
@@ -136,6 +147,7 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
         //check safe account setGuard
         if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
             console.logString("SolvVaultGuard: checkTransaction: setGuard");
+            console.log(allowSetGuard);
             require(allowSetGuard, "SolvVaultGuard: setGuard disabled");
             return;
         }
@@ -152,34 +164,29 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
             }
         }
 
-        revert("SolvVaultGuard: checkTransaction: check failed");
+        revert("SolvVaultGuard: checkTransaction failed");
     }
 
     function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
 
-    function _checkNativeTransfer(address to_, uint256 value_)
+    function _checkNativeTransfer(address to_, uint256 /* value_ */)
         internal
         view
         virtual
         override
         returns (Type.CheckResult memory result_)
     {
-        console.logString("SolvVaultGuard: _checkNativeTransfer");
-        if (value_ > 0) {
-            if (allowNativeTokenTransfer) {
-                if (nativeTokenReceiver[to_]) {
-                    result_.success = true;
-                    result_.message = "SolvVaultGuard: native token transfer allowed";
-                } else {
-                    result_.success = false;
-                    result_.message = "SolvVaultGuard: native token transfer not allowed";
-                }
+        if (allowNativeTokenTransfer) {
+            if (nativeTokenReceiver[to_]) {
+                result_.success = true;
+                result_.message = "SolvVaultGuard: native token transfer allowed";
             } else {
-                result_.message = "SolvVaultGuard: native token transfer not allowed";
+                result_.success = false;
+                result_.message = "SolvVaultGuard: native token receiver not allowed";
             }
         } else {
-            result_.success = true;
-            result_.message = "FunctionAuthorization: value zero,  native token transfer allowed";
+            result_.success = false;
+            result_.message = "SolvVaultGuard: native token transfer not allowed";
         }
     }
 }
