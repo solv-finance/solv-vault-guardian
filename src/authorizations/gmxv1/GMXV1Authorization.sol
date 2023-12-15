@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {FunctionAuthorization} from "../../common/FunctionAuthorization.sol";
 import {GMXV1AuthorizationACL} from "./GMXV1AuthorizationACL.sol";
-import "forge-std/console.sol";
 
 contract GMXV1Authorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;

@@ -7,7 +7,6 @@ import {Type} from "./common/Type.sol";
 import {Guard, Enum} from "safe-contracts/base/GuardManager.sol";
 import {BaseAuthorization} from "./common/BaseAuthorization.sol";
 import {FunctionAuthorization} from "./common/FunctionAuthorization.sol";
-import "forge-std/console.sol";
 
 contract SolvVaultGuardian is Guard, FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -139,15 +138,12 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
         address msgSender
     ) external virtual override {
         if (to == safeAccount && data.length == 0) {
-            console.logString("SolvVaultGuard: checkTransaction: safeWallet");
             return;
         }
         Type.TxData memory txData = Type.TxData({from: msgSender, to: to, value: value, data: data});
 
         //check safe account setGuard
         if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
-            console.logString("SolvVaultGuard: checkTransaction: setGuard");
-            console.log(allowSetGuard);
             require(allowSetGuard, "SolvVaultGuard: setGuard disabled");
             return;
         }
@@ -169,7 +165,7 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
 
     function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
 
-    function _checkNativeTransfer(address to_, uint256 /* value_ */)
+    function _checkNativeTransfer(address to_, uint256 /* value_ */ )
         internal
         view
         virtual

@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-import "forge-std/console.sol";
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {BaseACL} from "../../common/BaseACL.sol";
 

@@ -7,7 +7,6 @@ import {Type} from "../common/Type.sol";
 import {BaseAuthorization} from "../common/BaseAuthorization.sol";
 import {BaseACL} from "../common/BaseACL.sol";
 import {Multicall} from "../utils/Multicall.sol";
-import "forge-std/console.sol";
 
 abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -151,11 +150,12 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         return _authorizationCheckTransactionWithRecursion(txData_.from, txData_.to, txData_.data, txData_.value);
     }
 
-    function _authorizationCheckTransactionWithRecursion(address from_, address to_, bytes calldata data_, uint256 value_)
-        internal
-        virtual
-        returns (Type.CheckResult memory result_)
-    {
+    function _authorizationCheckTransactionWithRecursion(
+        address from_,
+        address to_,
+        bytes calldata data_,
+        uint256 value_
+    ) internal virtual returns (Type.CheckResult memory result_) {
         if (data_.length == 0) {
             return _checkNativeTransfer(to_, value_);
         }
@@ -183,12 +183,17 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         }
     }
 
-    function _checkMultiSend(address from_, address /* to_ */, bytes calldata transactions_, uint256 /* value_ */) internal virtual returns (Type.CheckResult memory result_) {
-        uint256 multiSendDataLength = uint256(bytes32(transactions_[4 + 32 : 4 + 32 + 32]));
-        bytes calldata multiSendData = transactions_[4 + 32 + 32: 4 + 32 + 32 + multiSendDataLength];
+    function _checkMultiSend(address from_, address, /* to_ */ bytes calldata transactions_, uint256 /* value_ */ )
+        internal
+        virtual
+        returns (Type.CheckResult memory result_)
+    {
+        uint256 multiSendDataLength = uint256(bytes32(transactions_[4 + 32:4 + 32 + 32]));
+        bytes calldata multiSendData = transactions_[4 + 32 + 32:4 + 32 + 32 + multiSendDataLength];
         uint256 startIndex = 0;
         while (startIndex < multiSendData.length) {
-            (address to, uint256 value, bytes calldata data, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
+            (address to, uint256 value, bytes calldata data, uint256 endIndex) =
+                _unpackMultiSend(multiSendData, startIndex);
             if (to != address(0)) {
                 result_ = _authorizationCheckTransactionWithRecursion(from_, to, data, value);
                 if (!result_.success) {
@@ -244,7 +249,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     }
 
     // to allow native token transferring, must override this function
-    function _checkNativeTransfer(address /* to */, uint256 /* value_ */)
+    function _checkNativeTransfer(address, /* to */ uint256 /* value_ */ )
         internal
         view
         virtual
@@ -254,4 +259,3 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         result_.message = "FunctionAuthorization: native token transfer not allowed";
     }
 }
-
