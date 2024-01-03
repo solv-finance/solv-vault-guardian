@@ -31,8 +31,8 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         address[] receivers;
     }
 
-    constructor(address caller_, TokenReceivers[] memory tokenReceivers_)
-        FunctionAuthorization(caller_, Governable(caller_).governor())
+    constructor(address safeMultiSendContract_, address caller_, TokenReceivers[] memory tokenReceivers_)
+        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor())
     {
         _transferFuncs = new string[](1);
         _transferFuncs[0] = ERC20_TRANSFER_FUNC;

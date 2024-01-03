@@ -19,12 +19,13 @@ contract GMXV2Authorization is FunctionAuthorization {
      * gmxWithdrawalVault: 0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55
      */
     constructor(
+        address safeMultiSendContract_,
         address caller_,
         address safeAccount_,
         address exchangeRouter_,
         address depositVault_,
         address withdrawalVault_
-    ) FunctionAuthorization(caller_, caller_) {
+    ) FunctionAuthorization(safeMultiSendContract_, caller_, caller_) {
         string[] memory gmxExchangeRouterFuncs = new string[](1);
         gmxExchangeRouterFuncs[0] = "multicall(bytes[])";
         _addContractFuncs(exchangeRouter_, gmxExchangeRouterFuncs);

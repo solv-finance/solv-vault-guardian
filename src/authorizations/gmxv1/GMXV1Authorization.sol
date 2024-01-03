@@ -18,7 +18,9 @@ contract GMXV1Authorization is FunctionAuthorization {
     string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
     string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
-    constructor(address safeAccount_, address caller_) FunctionAuthorization(caller_, caller_) {
+    constructor(address safeAccount_, address safeMultiSendContract_, address caller_)
+        FunctionAuthorization(safeMultiSendContract_, caller_, caller_)
+    {
         string[] memory glpRewardRouterV2Funcs = new string[](3);
         glpRewardRouterV2Funcs[0] = "handleRewards(bool,bool,bool,bool,bool,bool,bool)";
         glpRewardRouterV2Funcs[1] = "claim()";

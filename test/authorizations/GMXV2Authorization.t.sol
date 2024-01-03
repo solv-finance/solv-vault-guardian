@@ -11,7 +11,6 @@ import "../../src/authorizations/gmxv2/GMXV2Authorization.sol";
 import "../../src/authorizations/gmxv2/GMXV2AuthorizationACL.sol";
 
 contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
-
     address internal constant gmxExchangeRouter = 0x7C68C7866A64FA2160F78EEaE12217FFbf871fa8;
     address internal constant gmxDepositVault = 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55;
     address internal constant gmxWithdrawalVault = 0x0628D46b5D145f183AdB6Ef1f2c97eD1C4701C55;
@@ -24,14 +23,15 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
 
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         super._setSafeGuard();
 
-        gmxV2Authorization = new GMXV2Authorization(address(_guardian), safeAccount, gmxExchangeRouter, gmxDepositVault, gmxWithdrawalVault);
+        gmxV2Authorization =
+        new GMXV2Authorization(SAFE_MULTI_SEND_CONTRACT, address(_guardian), safeAccount, gmxExchangeRouter, gmxDepositVault, gmxWithdrawalVault);
     }
 
     function test_RevertWhenApproveTokenBeforeSettingAuthorization() public virtual {
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         _erc20Approve(USDC, governor, 1 ether);
         _erc20Approve(GMBTC, governor, 1 ether);
         _erc20Approve(GMETH, governor, 1 ether);
@@ -39,11 +39,11 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
     }
 
     function test_RevertWhenTransferTokenBeforeSettingAuthorization() public virtual {
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         _erc20Transfer(USDC, governor, 1 ether);
         _erc20Transfer(GMBTC, governor, 1 ether);
         _erc20Transfer(GMETH, governor, 1 ether);
-        _erc20Transfer(GMARB, governor, 1 ether);    
+        _erc20Transfer(GMARB, governor, 1 ether);
     }
 
     function test_approveTokenAfterSettingAuthorization() public virtual {
@@ -63,11 +63,27 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
         vm.stopPrank();
 
         bytes[] memory multicallData = new bytes[](3);
-        multicallData[0] = abi.encodeWithSignature("sendWnt(address,uint256)", 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 748000 gwei);
-        multicallData[1] = abi.encodeWithSignature("sendTokens(address,address,uint256)", USDC, 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 1000000);
+        multicallData[0] =
+            abi.encodeWithSignature("sendWnt(address,uint256)", 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 748000 gwei);
+        multicallData[1] = abi.encodeWithSignature(
+            "sendTokens(address,address,uint256)", USDC, 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 1000000
+        );
         multicallData[2] = abi.encodeWithSignature(
-            "createDeposit((address,address,address,address,address,address,address[],address[],uint256,bool,uint256,uint256))", 
-            CreateDepositParams(safeAccount, address(0), address(0), GMBTC, WBTC, USDC, new address[](0), new address[](0), 0, false, 748000 gwei, 0)
+            "createDeposit((address,address,address,address,address,address,address[],address[],uint256,bool,uint256,uint256))",
+            CreateDepositParams(
+                safeAccount,
+                address(0),
+                address(0),
+                GMBTC,
+                WBTC,
+                USDC,
+                new address[](0),
+                new address[](0),
+                0,
+                false,
+                748000 gwei,
+                0
+            )
         );
         bytes memory txData = abi.encodeWithSignature("multicall(bytes[])", multicallData);
         console.logBytes(txData);
@@ -75,40 +91,52 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
     }
 
     function test_RevertWhenCall_SendWnt_Directly() public virtual {
-        bytes memory txData = abi.encodeWithSignature("sendWnt(address,uint256)", 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 748000 gwei);
+        bytes memory txData =
+            abi.encodeWithSignature("sendWnt(address,uint256)", 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 748000 gwei);
         uint256 value = 748000 gwei;
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         _callExecTransaction(gmxExchangeRouter, value, txData, Enum.Operation.Call);
     }
 
     function test_RevertWhenCall_SendTokens_Directly() public virtual {
-        bytes memory txData = abi.encodeWithSignature("sendTokens(address,address,uint256)", USDC, 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 1000000);
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        bytes memory txData = abi.encodeWithSignature(
+            "sendTokens(address,address,uint256)", USDC, 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 1000000
+        );
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         _callExecTransaction(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
     }
 
     function test_RevertWhenCall_CreateDeposit_Directly() public virtual {
         bytes memory txData = abi.encodeWithSignature(
-            "createDeposit((address,address,address,address,address,address,address[],address[],uint256,bool,uint256,uint256))", 
-            safeAccount, address(0), address(0), GMBTC, WBTC, USDC, new address[](0), new address[](0), 0, false, 748000 gwei, 0
+            "createDeposit((address,address,address,address,address,address,address[],address[],uint256,bool,uint256,uint256))",
+            safeAccount,
+            address(0),
+            address(0),
+            GMBTC,
+            WBTC,
+            USDC,
+            new address[](0),
+            new address[](0),
+            0,
+            false,
+            748000 gwei,
+            0
         );
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         _callExecTransaction(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
     }
 
     function _addGMXV2Authorization() internal virtual {
-        SolvVaultGuardian.Authorization memory auth = SolvVaultGuardian.Authorization({
+        SolvVaultGuardianBase.Authorization memory auth = SolvVaultGuardianBase.Authorization({
             name: "GMXV2Authorization",
             executor: address(gmxV2Authorization),
             enabled: true
         });
-        SolvVaultGuardian.Authorization[] memory auths = new SolvVaultGuardian.Authorization[](1);
+        SolvVaultGuardianBase.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
     }
-    
 }
-
 
 // struct CreateDepositParams {
 //     address receiver;
@@ -138,4 +166,3 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
 //     uint256 executionFee;
 //     uint256 callbackGasLimit;
 // }
-

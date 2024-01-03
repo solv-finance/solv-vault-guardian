@@ -19,12 +19,13 @@ contract SolvOpenEndFundAuthorization is FunctionAuthorization {
     string public constant REDEMPTION_FUNC_REPAY_WITH_BALANCE = "repayWithBalance(uint256,address,uint256)";
 
     constructor(
+        address safeMultiSendContract_,
         address caller_,
         address openEndFundMarket_,
         address openEndFundShare_,
         address openEndFundRedemption_,
         bytes32[] memory repayablePoolIds_
-    ) FunctionAuthorization(caller_, address(0)) {
+    ) FunctionAuthorization(safeMultiSendContract_, caller_, address(0)) {
         string[] memory openEndFundMarketFuncs = new string[](2);
         openEndFundMarketFuncs[0] = MARKET_FUNC_SET_REDEEM_NAV;
         openEndFundMarketFuncs[1] = MARKET_FUNC_UPDATE_FUNDRAISING_END_TIME;

@@ -3,12 +3,11 @@
 pragma solidity ^0.8.0;
 
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
-import {Type} from "./common/Type.sol";
-import {Guard, Enum} from "safe-contracts/base/GuardManager.sol";
-import {BaseAuthorization} from "./common/BaseAuthorization.sol";
-import {FunctionAuthorization} from "./common/FunctionAuthorization.sol";
+import {Type} from "./Type.sol";
+import {BaseAuthorization} from "./BaseAuthorization.sol";
+import {FunctionAuthorization} from "./FunctionAuthorization.sol";
 
-contract SolvVaultGuardian is Guard, FunctionAuthorization {
+contract SolvVaultGuardianBase is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Authorization {
@@ -33,17 +32,14 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
     mapping(address => bool) public nativeTokenReceiver;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
-        FunctionAuthorization(address(this), governor_)
+        FunctionAuthorization(safeMultiSend_, address(this), governor_)
     {
         safeAccount = safeAccount_;
         _setGuardAllowed(allowSetGuard_);
         _setNativeTokenTransferAllowed(false);
 
-        string[] memory safeMultiSendFuncs = new string[](1);
-        safeMultiSendFuncs[0] = FunctionAuthorization.SAFE_MULITSEND_FUNC_MULTI_SEND;
-        _addContractFuncs(safeMultiSend_, safeMultiSendFuncs);
         Authorization memory self =
-            Authorization({name: "SolvVaultGuard_GeneralAuthorization", executor: address(this), enabled: true});
+            Authorization({name: "SolvVaultGuardian_GeneralAuthorization", executor: address(this), enabled: true});
         authorizations.push(self);
     }
 
@@ -97,7 +93,7 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
 
     function _addAuthorization(Authorization memory _authorization) internal virtual {
         for (uint256 i = 0; i < authorizations.length; i++) {
-            require(authorizations[i].executor != _authorization.executor, "SolvVaultGuard: guard already exist");
+            require(authorizations[i].executor != _authorization.executor, "SolvVaultGuardian: guard already exist");
         }
         authorizations.push(_authorization);
         emit AddAuthorization(_authorization.name, _authorization.executor, _authorization.enabled);
@@ -124,19 +120,10 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
         }
     }
 
-    function checkTransaction(
-        address to,
-        uint256 value,
-        bytes calldata data,
-        Enum.Operation, /*operation*/
-        uint256, /*safeTxGas*/
-        uint256, /*baseGas*/
-        uint256, /*gasPrice*/
-        address, /*gasToken*/
-        address payable, /*refundReceiver*/
-        bytes memory, /*signatures*/
-        address msgSender
-    ) external virtual override {
+    function _checkSafeTransaction(address to, uint256 value, bytes calldata data, address msgSender)
+        internal
+        virtual
+    {
         if (to == safeAccount && data.length == 0) {
             return;
         }
@@ -144,7 +131,7 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
 
         //check safe account setGuard
         if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
-            require(allowSetGuard, "SolvVaultGuard: setGuard disabled");
+            require(allowSetGuard, "SolvVaultGuardian: setGuard disabled");
             return;
         }
 
@@ -160,10 +147,8 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
             }
         }
 
-        revert("SolvVaultGuard: checkTransaction failed");
+        revert("SolvVaultGuardian: checkTransaction failed");
     }
-
-    function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
 
     function _checkNativeTransfer(address to_, uint256 /* value_ */ )
         internal
@@ -175,14 +160,14 @@ contract SolvVaultGuardian is Guard, FunctionAuthorization {
         if (allowNativeTokenTransfer) {
             if (nativeTokenReceiver[to_]) {
                 result_.success = true;
-                result_.message = "SolvVaultGuard: native token transfer allowed";
+                result_.message = "SolvVaultGuardian: native token transfer allowed";
             } else {
                 result_.success = false;
-                result_.message = "SolvVaultGuard: native token receiver not allowed";
+                result_.message = "SolvVaultGuardian: native token receiver not allowed";
             }
         } else {
             result_.success = false;
-            result_.message = "SolvVaultGuard: native token transfer not allowed";
+            result_.message = "SolvVaultGuardian: native token transfer not allowed";
         }
     }
 }

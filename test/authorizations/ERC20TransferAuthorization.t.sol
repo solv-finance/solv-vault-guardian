@@ -5,13 +5,14 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
+import "../../src/common/BaseAuthorization.sol";
 import "../common/SolvVaultGuardianBaseTest.sol";
 import "../../src/authorizations/ERC20TransferAuthorization.sol";
 
 contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         super._setSafeGuard();
     }
 
@@ -27,14 +28,15 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         ERC20TransferAuthorization.TokenReceivers[] memory tokenReceivers =
             new ERC20TransferAuthorization.TokenReceivers[](1);
         tokenReceivers[0] = receiver;
-        BaseAuthorization erc20TransferAuth = new ERC20TransferAuthorization(address(_guardian), tokenReceivers);
+        BaseAuthorization erc20TransferAuth =
+            new ERC20TransferAuthorization(SAFE_MULTI_SEND_CONTRACT, address(_guardian), tokenReceivers);
         vm.startPrank(governor);
-        SolvVaultGuardian.Authorization memory auth = SolvVaultGuardian.Authorization({
+        SolvVaultGuardianForSafe13.Authorization memory auth = SolvVaultGuardianBase.Authorization({
             name: "ERC20TransferAuthorization",
             executor: address(erc20TransferAuth),
             enabled: true
         });
-        SolvVaultGuardian.Authorization[] memory auths = new SolvVaultGuardian.Authorization[](1);
+        SolvVaultGuardianForSafe13.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
         _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
@@ -48,14 +50,15 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         ERC20TransferAuthorization.TokenReceivers[] memory tokenReceivers =
             new ERC20TransferAuthorization.TokenReceivers[](1);
         tokenReceivers[0] = receiver;
-        BaseAuthorization erc20TransferAuth = new ERC20TransferAuthorization(address(_guardian), tokenReceivers);
+        BaseAuthorization erc20TransferAuth =
+            new ERC20TransferAuthorization(SAFE_MULTI_SEND_CONTRACT, address(_guardian), tokenReceivers);
         vm.startPrank(governor);
-        SolvVaultGuardian.Authorization memory auth = SolvVaultGuardian.Authorization({
+        SolvVaultGuardianBase.Authorization memory auth = SolvVaultGuardianBase.Authorization({
             name: "ERC20TransferAuthorization",
             executor: address(erc20TransferAuth),
             enabled: true
         });
-        SolvVaultGuardian.Authorization[] memory auths = new SolvVaultGuardian.Authorization[](1);
+        SolvVaultGuardianBase.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
         _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
@@ -68,13 +71,13 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
             new ERC20TransferAuthorization.TokenReceivers[](0);
 
         ERC20TransferAuthorization erc20TransferAuth =
-            new ERC20TransferAuthorization(address(_guardian), tokenReceivers);
-        SolvVaultGuardian.Authorization memory auth = SolvVaultGuardian.Authorization({
+            new ERC20TransferAuthorization(SAFE_MULTI_SEND_CONTRACT, address(_guardian), tokenReceivers);
+        SolvVaultGuardianBase.Authorization memory auth = SolvVaultGuardianBase.Authorization({
             name: "ERC20TransferAuthorization",
             executor: address(erc20TransferAuth),
             enabled: true
         });
-        SolvVaultGuardian.Authorization[] memory auths = new SolvVaultGuardian.Authorization[](1);
+        SolvVaultGuardianBase.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
 

@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/SolvVaultGuardian.sol";
-import {GnosisSafeL2} from "safe-contracts/GnosisSafeL2.sol";
+import "../../src/SolvVaultGuardianForSafe13.sol";
+import {GnosisSafeL2} from "safe-contracts-1.3.0/GnosisSafeL2.sol";
 
 abstract contract SolvVaultGuardianBaseTest is Test {
     address public constant SAFE_MULTI_SEND_CONTRACT = 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
@@ -25,20 +25,28 @@ abstract contract SolvVaultGuardianBaseTest is Test {
     address public ownerOfSafe;
     address public permissionlessAccount;
     uint256 internal _privKeyForOwnerOfSafe;
-    SolvVaultGuardian internal _guardian;
+    SolvVaultGuardianForSafe13 internal _guardian;
 
     bytes internal _revertMessage;
 
     function setUp() public virtual {
         safeAccount = payable(vm.envAddress("SAFE_ACCOUNT"));
+        console.logString("safeAccount");
+        console.logAddress(safeAccount);
         governor = vm.envAddress("GOVERNOR");
+        console.logString("governor");
+        console.logAddress(governor);
         ownerOfSafe = vm.envAddress("OWNER_OF_SAFE");
+        console.logString("ownerOfSafe");
+        console.logAddress(ownerOfSafe);
         permissionlessAccount = vm.envAddress("PERMISSIONLESS_ACCOUNT");
+        console.logString("permissionlessAccount");
+        console.logAddress(permissionlessAccount);
         _privKeyForOwnerOfSafe = vm.envUint("PRIVATE_KEY_FOR_OWNER_OF_SAFE");
     }
 
     function _setSafeGuard() internal {
-        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), _guardian);
+        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(_guardian));
         vm.startPrank(ownerOfSafe);
         _callExecTransaction(safeAccount, 0, data, Enum.Operation.Call);
         vm.stopPrank();
@@ -72,9 +80,9 @@ abstract contract SolvVaultGuardianBaseTest is Test {
 
     function _getSignature(address contract_, uint256 value_, bytes memory data_, Enum.Operation operation_)
         internal
-        view
         returns (bytes memory)
     {
+        assertFalse(_privKeyForOwnerOfSafe == 0, "private key for owner of safe is 0");
         uint256 nonce = GnosisSafeL2(safeAccount).nonce();
         bytes memory txHashData = GnosisSafeL2(safeAccount).encodeTransactionData(
             contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), nonce

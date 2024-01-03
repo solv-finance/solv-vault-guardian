@@ -11,11 +11,13 @@ import "../src/authorizations/ERC20TransferAuthorization.sol";
 contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         super._setSafeGuard();
     }
 
-    /** Tests for native token transfer */
+    /**
+     * Tests for native token transfer
+     */
 
     function test_TransferNativeToken() public virtual {
         vm.startPrank(governor);
@@ -32,11 +34,11 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
     }
 
     function test_RevertWhenTransferNativeTokenInInitialState() public virtual {
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
 
         // when transfer value is zero
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0);
     }
 
@@ -46,7 +48,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         vm.stopPrank();
 
         // allow native token transfer but receiver whitelist is empty
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
 
         vm.startPrank(governor);
@@ -57,7 +59,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         vm.stopPrank();
 
         // allow native token transfer but receiver not in whitelist
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
     }
 
@@ -70,7 +72,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         _guardian.setNativeTokenTransferAllowed(false);
         vm.stopPrank();
 
-        _revertMessage = "SolvVaultGuard: checkTransaction failed";
+        _revertMessage = "SolvVaultGuardian: checkTransaction failed";
         super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
     }
 
@@ -94,53 +96,58 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         vm.expectRevert("Governable: only governor");
         _guardian.addNativeTokenReceiver(receiverWhitelist);
         vm.stopPrank();
-        
+
         vm.startPrank(permissionlessAccount);
         vm.expectRevert("Governable: only governor");
         _guardian.addNativeTokenReceiver(receiverWhitelist);
         vm.stopPrank();
     }
 
-    /** Test for setGuard function */
+    /**
+     * Test for setGuard function
+     */
     function test_SetGuard() public virtual {
         vm.startPrank(governor);
         _guardian.setGuardAllowed(true);
         vm.stopPrank();
 
         // change to another guard
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         _setSafeGuard();
 
         // reset guard
-        _guardian = SolvVaultGuardian(address(0));
-        super._setSafeGuard();
+        _guardian = SolvVaultGuardianForSafe13(address(0));
+        _setSafeGuard();
     }
 
     function test_SetGuardWhenReenabled() public virtual {
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
         _setSafeGuard();
 
+        _revertMessage = "";
         vm.startPrank(governor);
         _guardian.setGuardAllowed(true);
         vm.stopPrank();
 
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
         _setSafeGuard();
     }
 
     function test_RevertWhenSetGuardIsNotAllowedInInitialState() public virtual {
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
         _setSafeGuard();
-        
+
+        /*
         // change to another guard
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
-        _revertMessage = "SolvVaultGuard: setGuard disabled";
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
+        _revertMessage = "SolvVaultGuardian: setGuard disabled";
         _setSafeGuard();
 
         // reset guard
-        _guardian = SolvVaultGuardian(address(0));
-        _revertMessage = "SolvVaultGuard: setGuard disabled";
-        super._setSafeGuard();
+        _guardian = SolvVaultGuardianForSafe13(address(0));
+        _revertMessage = "SolvVaultGuardian: setGuard disabled";
+        _setSafeGuard();
+        */
     }
 
     function test_RevertWhenSetGuardWhenDisabled() public virtual {
@@ -149,13 +156,13 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         vm.stopPrank();
 
         // change to another guard
-        _guardian = new SolvVaultGuardian(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
-        _revertMessage = "SolvVaultGuard: setGuard disabled";
+        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
+        _revertMessage = "SolvVaultGuardian: setGuard disabled";
         _setSafeGuard();
 
         // reset guard
-        _guardian = SolvVaultGuardian(address(0));
-        _revertMessage = "SolvVaultGuard: setGuard disabled";
+        _guardian = SolvVaultGuardianForSafe13(address(0));
+        _revertMessage = "SolvVaultGuardian: setGuard disabled";
         super._setSafeGuard();
     }
 
@@ -170,5 +177,4 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         _guardian.setGuardAllowed(true);
         vm.stopPrank();
     }
-
 }

@@ -12,7 +12,6 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    //address public constant SAFE_MULTI_SEND_CONTRACT = 0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761;
     string public constant SAFE_MULITSEND_FUNC_MULTI_SEND = "multiSend(bytes)";
 
     event AddContractFunc(address indexed contract_, string func_, address indexed sender_);
@@ -21,12 +20,17 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     event RemoveContractFuncSig(address indexed contract_, bytes4 indexed funcSig_, address indexed sender_);
     event SetContractACL(address indexed contract_, address indexed acl_, address indexed sender_);
 
+    address public immutable safeMultiSendContract;
     EnumerableSet.AddressSet internal _contracts;
     mapping(address => EnumerableSet.Bytes32Set) internal _allowedContractToFunctions;
     //contract => acl
     mapping(address => address) internal _contractACL;
 
-    constructor(address caller_, address governor_) BaseAuthorization(caller_, governor_) {}
+    constructor(address safeMultiSendContract_, address caller_, address governor_)
+        BaseAuthorization(caller_, governor_)
+    {
+        safeMultiSendContract = safeMultiSendContract_;
+    }
 
     function addContractFuncs(address contract_, address acl_, string[] memory funcList_)
         external
@@ -159,16 +163,18 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         if (data_.length == 0) {
             return _checkNativeTransfer(to_, value_);
         }
+
+        if (data_.length < 4) {
+            result_.success = false;
+            result_.message = "FunctionAuthorization: invalid txData";
+            return result_;
+        }
+
         bytes4 selector = _getSelector(data_);
 
-        if (_isAllowedSelector(to_, selector) && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
+        if (to_ == safeMultiSendContract && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
             result_ = _checkMultiSend(from_, to_, data_, value_);
         } else {
-            if (data_.length < 4) {
-                result_.success = false;
-                result_.message = "FunctionAuthorization: invalid txData";
-                return result_;
-            }
             if (_isAllowedSelector(to_, selector)) {
                 result_.success = true;
                 //if allowed, check acl
