@@ -86,8 +86,7 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
             )
         );
         bytes memory txData = abi.encodeWithSignature("multicall(bytes[])", multicallData);
-        console.logBytes(txData);
-        _callExecTransaction(gmxExchangeRouter, 748000 gwei, txData, Enum.Operation.Call);
+        _checkFromGuardian(gmxExchangeRouter, 748000 gwei, txData, Enum.Operation.Call);
     }
 
     function test_RevertWhenCall_SendWnt_Directly() public virtual {
@@ -95,7 +94,7 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
             abi.encodeWithSignature("sendWnt(address,uint256)", 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 748000 gwei);
         uint256 value = 748000 gwei;
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        _callExecTransaction(gmxExchangeRouter, value, txData, Enum.Operation.Call);
+        _checkFromGuardian(gmxExchangeRouter, value, txData, Enum.Operation.Call);
     }
 
     function test_RevertWhenCall_SendTokens_Directly() public virtual {
@@ -103,7 +102,7 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
             "sendTokens(address,address,uint256)", USDC, 0xF89e77e8Dc11691C9e8757e84aaFbCD8A67d7A55, 1000000
         );
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        _callExecTransaction(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
+        _checkFromGuardian(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
     }
 
     function test_RevertWhenCall_CreateDeposit_Directly() public virtual {
@@ -123,7 +122,7 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
             0
         );
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        _callExecTransaction(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
+        _checkFromGuardian(gmxExchangeRouter, 0, txData, Enum.Operation.Call);
     }
 
     function _addGMXV2Authorization() internal virtual {
