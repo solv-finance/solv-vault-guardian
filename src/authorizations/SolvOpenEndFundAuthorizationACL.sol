@@ -30,9 +30,6 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
 
     EnumerableSet.Bytes32Set internal _repayablePoolIds;
 
-    event RepayablePoolIdAdded(bytes32 indexed repayablePoolId);
-    event RepayablePoolIdRemoved(bytes32 indexed repayablePoolId);
-
     constructor(address caller_, address solvV3OpenEndFundRedemption_, bytes32[] memory repayablePoolIds_)
         BaseACL(caller_)
     {

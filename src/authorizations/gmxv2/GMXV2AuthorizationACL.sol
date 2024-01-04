@@ -51,7 +51,6 @@ contract GMXV2AuthorizationACL is BaseACL {
     address public withdrawalVault;
 
     event AddGmxPool(address indexed gmToken, CollateralPair collateralPair);
-    event RemoveGmxPool(address indexed gmToken);
 
     constructor(
         address caller_,
