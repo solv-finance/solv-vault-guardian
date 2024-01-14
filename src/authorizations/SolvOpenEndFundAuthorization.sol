@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
 import {SolvOpenEndFundAuthorizationACL} from "./SolvOpenEndFundAuthorizationACL.sol";
+import {Governable} from "../utils/Governable.sol";
 
 contract SolvOpenEndFundAuthorization is FunctionAuthorization {
     string public constant NAME = "SolvVaultGuard_SolvOpenEndFundAuthorization";
@@ -25,7 +26,7 @@ contract SolvOpenEndFundAuthorization is FunctionAuthorization {
         address openEndFundShare_,
         address openEndFundRedemption_,
         bytes32[] memory repayablePoolIds_
-    ) FunctionAuthorization(safeMultiSendContract_, caller_, address(0)) {
+    ) FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) {
         string[] memory openEndFundMarketFuncs = new string[](2);
         openEndFundMarketFuncs[0] = MARKET_FUNC_SET_REDEEM_NAV;
         openEndFundMarketFuncs[1] = MARKET_FUNC_UPDATE_FUNDRAISING_END_TIME;

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
+import {Governable} from "../utils/Governable.sol";
 
 contract CoboArgusAdminAuthorization is FunctionAuthorization {
     string public constant NAME = "SolvVaultGuard_CoboArgusAdminAuthorization";
@@ -20,7 +21,7 @@ contract CoboArgusAdminAuthorization is FunctionAuthorization {
         address argusAccountHelper_,
         address argusFlatRoleManager_,
         address argusFarmingBaseAcl_
-    ) FunctionAuthorization(safeMultiSendContract_, caller_, address(0)) {
+    ) FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) {
         string[] memory argusAccountHelperFuncs = new string[](6);
         argusAccountHelperFuncs[0] = "initArgus(address,bytes32)";
         argusAccountHelperFuncs[1] = "createAuthorizer(address,address,bytes32,bytes32)";
