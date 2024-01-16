@@ -13,8 +13,8 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
     string public constant NAME = "SolvVaultGuard_ERC20TransferAuthorization";
     int256 public constant VERSION = 1;
 
-    string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
-    address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    string internal constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
+    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
