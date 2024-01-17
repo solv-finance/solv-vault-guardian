@@ -6,7 +6,7 @@ import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
 import {Governable} from "../utils/Governable.sol";
 
 contract CoboArgusAdminAuthorization is FunctionAuthorization {
-    string public constant NAME = "SolvVaultGuard_CoboArgusAdminAuthorization";
+    string public constant NAME = "SolvVaultGuardian_CoboArgusAdminAuthorization";
     int256 public constant VERSION = 1;
 
     /**

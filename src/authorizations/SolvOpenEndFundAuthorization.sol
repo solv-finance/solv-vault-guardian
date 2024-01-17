@@ -7,7 +7,7 @@ import {SolvOpenEndFundAuthorizationACL} from "./SolvOpenEndFundAuthorizationACL
 import {Governable} from "../utils/Governable.sol";
 
 contract SolvOpenEndFundAuthorization is FunctionAuthorization {
-    string public constant NAME = "SolvVaultGuard_SolvOpenEndFundAuthorization";
+    string public constant NAME = "SolvVaultGuardian_SolvOpenEndFundAuthorization";
     int256 public constant VERSION = 1;
 
     string public constant SHARE_FUNC_REPAY = "repay(uint256,address,uint256)";

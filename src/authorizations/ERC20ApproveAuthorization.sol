@@ -10,7 +10,7 @@ import {Governable} from "../utils/Governable.sol";
 contract ERC20ApproveAuthorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuard_ERC20ApproveAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC20ApproveAuthorization";
     int256 public constant VERSION = 1;
 
     string internal constant ERC20_APPROVE_FUNC = "approve(address,uint256)";

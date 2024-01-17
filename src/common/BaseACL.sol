@@ -75,4 +75,8 @@ abstract contract BaseACL {
     function _txn() internal view virtual returns (Type.TxData memory) {
         return _unpackTxn();
     }
+
+    function _checkValueZero() internal view virtual {
+        require(_txn().value == 0, "Value not zero");
+    }
 }
