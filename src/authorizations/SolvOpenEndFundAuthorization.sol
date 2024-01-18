@@ -7,7 +7,7 @@ import {SolvOpenEndFundAuthorizationACL} from "./SolvOpenEndFundAuthorizationACL
 import {Governable} from "../utils/Governable.sol";
 
 contract SolvOpenEndFundAuthorization is FunctionAuthorization {
-    string public constant NAME = "SolvVaultGuard_SolvOpenEndFundAuthorization";
+    string public constant NAME = "SolvVaultGuardian_SolvOpenEndFundAuthorization";
     int256 public constant VERSION = 1;
 
     string public constant SHARE_FUNC_REPAY = "repay(uint256,address,uint256)";
@@ -28,7 +28,7 @@ contract SolvOpenEndFundAuthorization is FunctionAuthorization {
         openEndFundRedemptionFuncs[0] = REDEMPTION_FUNC_REPAY;
         _addContractFuncs(openEndFundRedemption_, openEndFundRedemptionFuncs);
 
-        address acl = address(new SolvOpenEndFundAuthorizationACL(caller_, openEndFundRedemption_, repayablePoolIds_));
+        address acl = address(new SolvOpenEndFundAuthorizationACL(address(this), openEndFundRedemption_, repayablePoolIds_));
         _setContractACL(openEndFundShare_, acl);
         _setContractACL(openEndFundRedemption_, acl);
     }

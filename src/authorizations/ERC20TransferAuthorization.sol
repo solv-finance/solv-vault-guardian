@@ -10,7 +10,7 @@ import {Governable} from "../utils/Governable.sol";
 contract ERC20TransferAuthorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuard_ERC20TransferAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC20TransferAuthorization";
     int256 public constant VERSION = 1;
 
     string internal constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";

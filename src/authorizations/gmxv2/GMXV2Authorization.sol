@@ -2,12 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {FunctionAuthorization} from "../../common/FunctionAuthorization.sol";
 import {GMXV2AuthorizationACL} from "./GMXV2AuthorizationACL.sol";
+import {Governable} from "../../utils/Governable.sol";
 
 contract GMXV2Authorization is FunctionAuthorization {
-    using EnumerableSet for EnumerableSet.AddressSet;
+
+    string public constant NAME = "SolvVaultGuard_GMXV2Authorization";
+    uint256 public constant VERSION = 1;
 
     string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
     string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
@@ -25,7 +27,7 @@ contract GMXV2Authorization is FunctionAuthorization {
         address exchangeRouter_,
         address depositVault_,
         address withdrawalVault_
-    ) FunctionAuthorization(safeMultiSendContract_, caller_, caller_) {
+    ) FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) {
         string[] memory gmxExchangeRouterFuncs = new string[](1);
         gmxExchangeRouterFuncs[0] = "multicall(bytes[])";
         _addContractFuncs(exchangeRouter_, gmxExchangeRouterFuncs);
