@@ -137,7 +137,6 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
         _setSafeGuard();
 
-        /*
         // change to another guard
         _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, false);
         _revertMessage = "SolvVaultGuardian: setGuard disabled";
@@ -147,7 +146,6 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         _guardian = SolvVaultGuardianForSafe13(address(0));
         _revertMessage = "SolvVaultGuardian: setGuard disabled";
         _setSafeGuard();
-        */
     }
 
     function test_RevertWhenSetGuardWhenDisabled() public virtual {

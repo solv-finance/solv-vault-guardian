@@ -26,7 +26,7 @@ module.exports = {
           },
         },
       },
-    ]
+    ],
   },
 
   namedAccounts: {
@@ -35,7 +35,11 @@ module.exports = {
 
   networks: {
     hardhat: {},
-    localhost: {},
+    localhost: {
+      url: "http://localhost:8545",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     goerli: {
       url:
         process.env.GOERLI_URL ||
