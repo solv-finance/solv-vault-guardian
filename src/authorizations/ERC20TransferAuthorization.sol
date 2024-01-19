@@ -14,6 +14,7 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
     int256 public constant VERSION = 1;
 
     string internal constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
+    bytes4 internal constant TRANSFER_SELECTOR = 0xa9059cbb;
     address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event TokenAdded(address indexed token);
@@ -97,31 +98,25 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         return _allowedTokenReceivers[token].values();
     }
 
-    function _authorizationCheckTransaction(Type.TxData calldata txData_)
-        internal
-        virtual
-        override
-        returns (Type.CheckResult memory result)
+    function _checkSingleTx(address /* from_ */, address to_, bytes calldata data_, uint256 value_) 
+        internal 
+        virtual 
+        override 
+        returns (Type.CheckResult memory result) 
     {
-        if (txData_.data.length < 68) {
-            result.success = false;
-            result.message = "ERC20TransferAuthorization: not ERC20 Transfer";
-            return result;
-        }
-
-        (address recipient, /*uint256 amount*/ ) = abi.decode(txData_.data[4:], (address, uint256));
-
-        if (txData_.data.length >= 68 && txData_.value == 0) {
-            result = super._authorizationCheckTransaction(txData_);
+        if (data_.length == 68 && bytes4(data_[0:4]) == TRANSFER_SELECTOR && value_ == 0) {
+            (address recipient, /* uint256 amount */ ) = abi.decode(data_[4:], (address, uint256));
             if (result.success) {
-                if (!_allowedTokenReceivers[txData_.to].contains(recipient)) {
+                if (!_allowedTokenReceivers[to_].contains(recipient)) {
                     result.success = false;
                     result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
                 }
             }
         } else {
             result.success = false;
-            result.message = "ERC20TransferAuthorization: transfer not allowed";
+            result.message = "ERC20TransferAuthorization: not ERC20 Transfer";
+            return result;
         }
     }
+
 }
