@@ -234,23 +234,32 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         endIndex_ = startIndex_ + offset + dataLength;
     }
 
-    function _checkSingleTx(address from_, address to_, bytes calldata data_, uint256 value_) 
-        internal 
-        virtual 
-        returns (Type.CheckResult memory result_) 
+    function _checkSingleTx(address from_, address to_, bytes calldata data_, uint256 value_)
+        internal
+        virtual
+        returns (Type.CheckResult memory result_)
     {
         bytes4 selector = _getSelector(data_);
         if (_isAllowedSelector(to_, selector)) {
             result_.success = true;
             //if allowed, check acl
             if (_contractACL[to_] != address(0)) {
-                result_ = BaseACL(_contractACL[to_]).preCheck(from_, to_, data_, value_);
+                try BaseACL(_contractACL[to_]).preCheck(from_, to_, data_, value_) returns (
+                    Type.CheckResult memory result
+                ) {
+                    return result;
+                } catch Error(string memory reason) {
+                    result_.success = false;
+                    result_.message = reason;
+                } catch (bytes memory reason) {
+                    result_.success = false;
+                    result_.message = string(reason);
+                }
             }
         } else {
             result_.success = false;
             result_.message = "FunctionAuthorization: not allowed function";
         }
-        
     }
 
     function _isAllowedSelector(address target_, bytes4 selector_) internal view virtual returns (bool) {

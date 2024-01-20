@@ -26,20 +26,20 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         receiverWhitelist[0] = CEX_RECHARGE_ADDRESS;
         _guardian.addNativeTokenReceiver(receiverWhitelist);
         vm.stopPrank();
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0.001 ether);
     }
 
     function test_TransferNativeTokenToSelf() public virtual {
-        super._nativeTokenTransfer(safeAccount, 0.001 ether);
+        super._nativeTokenTransferWithSafe(safeAccount, 0.001 ether);
     }
 
     function test_RevertWhenTransferNativeTokenInInitialState() public virtual {
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0.001 ether);
 
         // when transfer value is zero
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0);
     }
 
     function test_TransferNativeTokenWhenReceiverIsNotInWhitelist() public virtual {
@@ -49,7 +49,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
 
         // allow native token transfer but receiver whitelist is empty
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0.001 ether);
 
         vm.startPrank(governor);
         _guardian.setNativeTokenTransferAllowed(true);
@@ -60,7 +60,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
 
         // allow native token transfer but receiver not in whitelist
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0.001 ether);
     }
 
     function test_RevertWhenTransferNativeTokenWhenDisabled() public virtual {
@@ -73,7 +73,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         vm.stopPrank();
 
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        super._nativeTokenTransfer(CEX_RECHARGE_ADDRESS, 0.001 ether);
+        super._nativeTokenTransferWithSafe(CEX_RECHARGE_ADDRESS, 0.001 ether);
     }
 
     function test_RevertWhenAllowTransferNativeTokenByNonGovernor() public virtual {
@@ -175,4 +175,6 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         _guardian.setGuardAllowed(true);
         vm.stopPrank();
     }
+
+    function test_OpenEndFundCEXArbitrage() public virtual {}
 }

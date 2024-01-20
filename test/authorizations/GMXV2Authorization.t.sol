@@ -32,18 +32,18 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
 
     function test_RevertWhenApproveTokenBeforeSettingAuthorization() public virtual {
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        _erc20Approve(USDC, governor, 1 ether);
-        _erc20Approve(GMBTC, governor, 1 ether);
-        _erc20Approve(GMETH, governor, 1 ether);
-        _erc20Approve(GMARB, governor, 1 ether);
+        _erc20ApproveWithSafe(USDC, governor, 1 ether);
+        _erc20ApproveWithSafe(GMBTC, governor, 1 ether);
+        _erc20ApproveWithSafe(GMETH, governor, 1 ether);
+        _erc20ApproveWithSafe(GMARB, governor, 1 ether);
     }
 
     function test_RevertWhenTransferTokenBeforeSettingAuthorization() public virtual {
         _revertMessage = "SolvVaultGuardian: checkTransaction failed";
-        _erc20Transfer(USDC, governor, 1 ether);
-        _erc20Transfer(GMBTC, governor, 1 ether);
-        _erc20Transfer(GMETH, governor, 1 ether);
-        _erc20Transfer(GMARB, governor, 1 ether);
+        _erc20TransferWithSafe(USDC, governor, 1 ether);
+        _erc20TransferWithSafe(GMBTC, governor, 1 ether);
+        _erc20TransferWithSafe(GMETH, governor, 1 ether);
+        _erc20TransferWithSafe(GMARB, governor, 1 ether);
     }
 
     function test_approveTokenAfterSettingAuthorization() public virtual {
@@ -51,10 +51,10 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
         _addGMXV2Authorization();
         vm.stopPrank();
 
-        _erc20Approve(USDC, governor, 1 ether);
-        _erc20Approve(GMBTC, governor, 1 ether);
-        _erc20Approve(GMETH, governor, 1 ether);
-        _erc20Approve(GMARB, governor, 1 ether);
+        _erc20ApproveWithSafe(USDC, governor, 1 ether);
+        _erc20ApproveWithSafe(GMBTC, governor, 1 ether);
+        _erc20ApproveWithSafe(GMETH, governor, 1 ether);
+        _erc20ApproveWithSafe(GMARB, governor, 1 ether);
     }
 
     function test_BuyGMToken() public virtual {

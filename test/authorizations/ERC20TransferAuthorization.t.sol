@@ -18,7 +18,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
 
     function testFail_TransferERC20Token() public {
         vm.startPrank(governor);
-        _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
+        _erc20TransferWithSafe(USDT, CEX_RECHARGE_ADDRESS, 1e6);
         vm.stopPrank();
     }
 
@@ -39,7 +39,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         SolvVaultGuardianForSafe13.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
-        _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
+        _erc20TransferWithSafe(USDT, CEX_RECHARGE_ADDRESS, 1e6);
         vm.stopPrank();
     }
 
@@ -61,7 +61,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
         SolvVaultGuardianBase.Authorization[] memory auths = new SolvVaultGuardianBase.Authorization[](1);
         auths[0] = auth;
         _guardian.addAuthorizations(auths);
-        _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
+        _erc20TransferWithSafe(USDT, CEX_RECHARGE_ADDRESS, 1e6);
         vm.stopPrank();
     }
 
@@ -88,7 +88,7 @@ contract SolvVaultGuardianTest is SolvVaultGuardianBaseTest {
             new ERC20TransferAuthorization.TokenReceivers[](1);
         newTokenReceivers[0] = receiver;
         erc20TransferAuth.addTokenReceivers(newTokenReceivers);
-        _erc20Transfer(USDT, CEX_RECHARGE_ADDRESS, 1e6);
+        _erc20TransferWithSafe(USDT, CEX_RECHARGE_ADDRESS, 1e6);
         vm.stopPrank();
     }
 }

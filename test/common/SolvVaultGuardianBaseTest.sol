@@ -44,17 +44,17 @@ abstract contract SolvVaultGuardianBaseTest is Test {
         vm.stopPrank();
     }
 
-    function _erc20Approve(address token_, address spender_, uint256 amount_) internal {
+    function _erc20ApproveWithSafe(address token_, address spender_, uint256 amount_) internal {
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("approve(address,uint256)")), spender_, amount_);
         _callExecTransaction(token_, 0, data, Enum.Operation.Call);
     }
 
-    function _erc20Transfer(address token_, address to_, uint256 amount_) internal {
+    function _erc20TransferWithSafe(address token_, address to_, uint256 amount_) internal {
         bytes memory data = abi.encodeWithSelector(bytes4(keccak256("transfer(address,uint256)")), to_, amount_);
         _callExecTransaction(token_, 0, data, Enum.Operation.Call);
     }
 
-    function _nativeTokenTransfer(address to_, uint256 amount_) internal {
+    function _nativeTokenTransferWithSafe(address to_, uint256 amount_) internal {
         _callExecTransaction(to_, amount_, "", Enum.Operation.Call);
     }
 
