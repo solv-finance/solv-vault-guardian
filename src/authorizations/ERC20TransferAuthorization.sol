@@ -98,19 +98,19 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
         return _allowedTokenReceivers[token].values();
     }
 
-    function _checkSingleTx(address /* from_ */, address to_, bytes calldata data_, uint256 value_) 
-        internal 
-        virtual 
-        override 
-        returns (Type.CheckResult memory result) 
+    function _checkSingleTx(address, /* from_ */ address to_, bytes calldata data_, uint256 value_)
+        internal
+        virtual
+        override
+        returns (Type.CheckResult memory result)
     {
         if (data_.length == 68 && bytes4(data_[0:4]) == TRANSFER_SELECTOR && value_ == 0) {
             (address recipient, /* uint256 amount */ ) = abi.decode(data_[4:], (address, uint256));
-            if (result.success) {
-                if (!_allowedTokenReceivers[to_].contains(recipient)) {
-                    result.success = false;
-                    result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
-                }
+            if (!_allowedTokenReceivers[to_].contains(recipient)) {
+                result.success = false;
+                result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
+            } else {
+                result.success = true;
             }
         } else {
             result.success = false;
@@ -118,5 +118,4 @@ contract ERC20TransferAuthorization is FunctionAuthorization {
             return result;
         }
     }
-
 }
