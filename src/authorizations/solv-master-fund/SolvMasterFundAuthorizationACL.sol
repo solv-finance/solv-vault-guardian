@@ -93,4 +93,8 @@ contract SolvMasterFundAuthorizationACL is BaseACL, Governable {
         }
     }
 
+    function revokeRedeem(bytes32 poolId, uint256 /* openFundRedemptionId */) external view virtual {
+        require(checkPoolId(poolId), "MasterFundACL: pool not allowed");
+    }
+
 }

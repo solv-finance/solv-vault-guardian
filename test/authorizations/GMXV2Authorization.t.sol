@@ -136,32 +136,3 @@ contract GMXV2AuthorizationTest is SolvVaultGuardianBaseTest {
         _guardian.addAuthorizations(auths);
     }
 }
-
-// struct CreateDepositParams {
-//     address receiver;
-//     address callbackContract;
-//     address uiFeeReceiver;
-//     address market;
-//     address initialLongToken;
-//     address initialShortToken;
-//     address[] longTokenSwapPath;
-//     address[] shortTokenSwapPath;
-//     uint256 minMarketTokens;
-//     bool shouldUnwrapNativeToken;
-//     uint256 executionFee;
-//     uint256 callbackGasLimit;
-// }
-
-// struct CreateWithdrawalParams {
-//     address receiver;
-//     address callbackContract;
-//     address uiFeeReceiver;
-//     address market;
-//     address[] longTokenSwapPath;
-//     address[] shortTokenSwapPath;
-//     uint256 minLongTokenAmount;
-//     uint256 minShortTokenAmount;
-//     bool shouldUnwrapNativeToken;
-//     uint256 executionFee;
-//     uint256 callbackGasLimit;
-// }

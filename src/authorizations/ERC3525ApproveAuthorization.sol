@@ -7,18 +7,15 @@ import {Type} from "../common/Type.sol";
 import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
 import {Governable} from "../utils/Governable.sol";
 
-contract ERC20ApproveAuthorization is FunctionAuthorization {
+contract ERC3525ApproveAuthorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuardian_ERC20ApproveAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC3525ApproveAuthorization";
     int256 public constant VERSION = 1;
 
-    string internal constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
-    string internal constant ERC20_INCREASE_ALLOWANCE_FUNC = "increaseAllowance(address,uint256)";
-    string internal constant ERC20_DECREASE_ALLOWANCE_FUNC = "decreaseAllowance(address,uint256)";
+    string internal constant ERC3525_APPROVE_ID_FUNC = "approve(address,uint256)";
+    string internal constant ERC3525_APPROVE_VALUE_FUNC = "approve(uint256,address,uint256)";
     
-    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
     event TokenSpenderAdded(address indexed token, address indexed spender);
@@ -37,10 +34,9 @@ contract ERC20ApproveAuthorization is FunctionAuthorization {
     constructor(address safeMultiSendContract_, address caller_, TokenSpenders[] memory tokenSpenders_)
         FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor())
     {
-        _approveFuncs = new string[](3);
-        _approveFuncs[0] = ERC20_APPROVE_FUNC;
-        _approveFuncs[1] = ERC20_INCREASE_ALLOWANCE_FUNC;
-        _approveFuncs[2] = ERC20_DECREASE_ALLOWANCE_FUNC;
+        _approveFuncs = new string[](2);
+        _approveFuncs[0] = ERC3525_APPROVE_ID_FUNC;
+        _approveFuncs[1] = ERC3525_APPROVE_VALUE_FUNC;
         _addTokenSpenders(tokenSpenders_);
     }
 
@@ -110,10 +106,18 @@ contract ERC20ApproveAuthorization is FunctionAuthorization {
     {
         result = super._checkSingleTx(from_, to_, data_, value_);
         if (result.success) {
-            (address spender, /* uint256 allowance */) = abi.decode(data_[4:], (address, uint256));
-            if (!_allowedTokenSpenders[to_].contains(spender)) {
-                result.success = false;
-                result.message = "ERC20ApproveAuthorization: ERC20 spender not allowed";
+            if (data_.length == 68) {  // approve id
+                (address spender, /* uint256 tokenId */) = abi.decode(data_[4:], (address, uint256));
+                if (!_allowedTokenSpenders[to_].contains(spender)) {
+                    result.success = false;
+                    result.message = "ERC3525ApproveAuthorization: ERC3525 id spender not allowed";
+                }
+            } else {  // approve value
+                (/* uint256 tokenId */, address spender, /* uint256 allowance */) = abi.decode(data_[4:], (uint256, address, uint256));
+                if (!_allowedTokenSpenders[to_].contains(spender)) {
+                    result.success = false;
+                    result.message = "ERC3525ApproveAuthorization: ERC3525 value spender not allowed";
+                }
             }
         }
     }

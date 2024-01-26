@@ -145,3 +145,4 @@ node_modules
 /coverage.json
 
 /cache_hardhat
+**/solcInputs
