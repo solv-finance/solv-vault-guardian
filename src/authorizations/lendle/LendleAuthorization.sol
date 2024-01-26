@@ -30,7 +30,7 @@ contract LendleAuthorization is FunctionAuthorization {
         lendingPoolFuncs[0] = "deposit(address,uint256,address,uint16)";
         lendingPoolFuncs[1] = "withdraw(address,uint256,address)";
         lendingPoolFuncs[2] = "borrow(address,uint256,uint256,uint16,address)";
-        lendingPoolFuncs[3] = "withdraw(address,uint256,uint256,address)";
+        lendingPoolFuncs[3] = "repay(address,uint256,uint256,address)";
         lendingPoolFuncs[4] = "swapBorrowRateMode(address,uint256)";
         _addContractFuncs(lendingPool_, lendingPoolFuncs);
 
