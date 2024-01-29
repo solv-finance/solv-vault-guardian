@@ -9,6 +9,8 @@ abstract contract BaseACL {
     address public safeAccount;
     address public solvGuard;
 
+    fallback() external {}
+
     constructor(address caller_) {
         caller = caller_;
     }

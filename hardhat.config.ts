@@ -63,9 +63,21 @@ module.exports = {
 
   etherscan: {
     apiKey: {
+      mantle: 'mantle',
       arb: process.env.ARBISCAN_API_KEY,
     },
+    customChains: [
+      {
+        network: "mantle",
+        chainId: 5000,
+        urls: {
+          apiURL: "https://explorer.mantle.xyz/api",
+          browserURL: "https://explorer.mantle.xyz/"
+        }
+      }
+    ]
   },
+
   preprocess: {
     eachLine: (hre) => ({
       transform: (line: string) => {
