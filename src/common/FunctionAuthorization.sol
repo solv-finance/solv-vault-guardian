@@ -2,9 +2,11 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {Type} from "../common/Type.sol";
 import {BaseAuthorization} from "../common/BaseAuthorization.sol";
+import {IBaseACL} from "../common/IBaseACL.sol";
 import {BaseACL} from "../common/BaseACL.sol";
 import {Multicall} from "../utils/Multicall.sol";
 
@@ -124,6 +126,12 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     }
 
     function _setContractACL(address contract_, address acl_) internal virtual {
+        if (acl_ != address(0)) {
+            require(
+                IERC165(acl_).supportsInterface(type(IBaseACL).interfaceId),
+                "FunctionAuthorization: acl_ is not IBaseACL"
+            );
+        }
         _contractACL[contract_] = acl_;
         emit SetContractACL(contract_, acl_, msg.sender);
     }

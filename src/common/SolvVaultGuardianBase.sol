@@ -2,8 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {Type} from "./Type.sol";
+import {IBaseAuthorization} from "./IBaseAuthorization.sol";
 import {BaseAuthorization} from "./BaseAuthorization.sol";
 import {FunctionAuthorization} from "./FunctionAuthorization.sol";
 
@@ -110,6 +112,10 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     function _addAuthorization(address to_, address authorization_) internal virtual {
         require(!_toAddresses.contains(to_), "SolvVaultGuardian: authorization already exist");
         require(authorizations[to_] == address(0), "SolvVaultGuardian: guard already exist");
+        require(
+            IERC165(authorization_).supportsInterface(type(IBaseAuthorization).interfaceId),
+            "SolvVaultGuardian: authorization_ is not IBaseAuthorization"
+        );
         _toAddresses.add(to_);
         authorizations[to_] = authorization_;
         emit AddAuthorization(to_, authorization_);
