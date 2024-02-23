@@ -7,12 +7,8 @@ import {GMXV2AuthorizationACL} from "./GMXV2AuthorizationACL.sol";
 import {Governable} from "../../utils/Governable.sol";
 
 contract GMXV2Authorization is FunctionAuthorization {
-
     string public constant NAME = "SolvVaultGuard_GMXV2Authorization";
     uint256 public constant VERSION = 1;
-
-    string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
-    string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
     /**
      * On Arbitrum
@@ -31,19 +27,6 @@ contract GMXV2Authorization is FunctionAuthorization {
         string[] memory gmxExchangeRouterFuncs = new string[](1);
         gmxExchangeRouterFuncs[0] = "multicall(bytes[])";
         _addContractFuncs(exchangeRouter_, gmxExchangeRouterFuncs);
-
-        string[] memory tokensFuncs = new string[](2);
-        tokensFuncs[0] = ERC20_APPROVE_FUNC;
-        tokensFuncs[1] = ERC20_TRANSFER_FUNC;
-
-        address[] memory tokens = new address[](4);
-        tokens[0] = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; // USDC
-        tokens[1] = 0x47c031236e19d024b42f8AE6780E44A573170703; // GM: BTC-USDC
-        tokens[2] = 0x70d95587d40A2caf56bd97485aB3Eec10Bee6336; // GM: ETH-USDC
-        tokens[3] = 0xC25cEf6061Cf5dE5eb761b50E4743c1F5D7E5407; // GM: ARB-USDC
-        for (uint256 i = 0; i < tokens.length; i++) {
-            _addContractFuncs(tokens[i], tokensFuncs);
-        }
 
         // add GMXV2AuthorizationACL
         address[] memory gmTokens = new address[](3);

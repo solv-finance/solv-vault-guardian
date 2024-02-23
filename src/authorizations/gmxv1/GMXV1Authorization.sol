@@ -7,15 +7,11 @@ import {GMXV1AuthorizationACL} from "./GMXV1AuthorizationACL.sol";
 import {Governable} from "../../utils/Governable.sol";
 
 contract GMXV1Authorization is FunctionAuthorization {
-
     string public constant NAME = "SolvVaultGuardian_GMXV1Authorization";
     uint256 public constant VERSION = 1;
 
     address public constant GMX_REWAED_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
     address public constant GMX_REWAED_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
-
-    string public constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
-    string public constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
 
     constructor(address safeAccount_, address safeMultiSendContract_, address caller_)
         FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor())
@@ -35,10 +31,6 @@ contract GMXV1Authorization is FunctionAuthorization {
 
         _addContractFuncs(GMX_REWAED_ROUTER_V2, glpRewardRouterFuncs);
 
-        string[] memory tokensFuncs = new string[](2);
-        tokensFuncs[0] = ERC20_APPROVE_FUNC;
-        tokensFuncs[1] = ERC20_TRANSFER_FUNC;
-
         address[] memory tokens = new address[](10);
         tokens[0] = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
         tokens[1] = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f; //WBTC
@@ -50,9 +42,6 @@ contract GMXV1Authorization is FunctionAuthorization {
         tokens[7] = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9; //USDT
         tokens[8] = 0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F; //FRAX
         tokens[9] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; //ETH
-        for (uint256 i = 0; i < tokens.length; i++) {
-            _addContractFuncs(tokens[i], tokensFuncs);
-        }
 
         address acl = address(new GMXV1AuthorizationACL(address(this), safeAccount_, tokens));
         _setContractACL(GMX_REWAED_ROUTER_V2, acl);
