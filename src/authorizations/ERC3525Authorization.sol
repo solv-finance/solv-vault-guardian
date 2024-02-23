@@ -7,15 +7,15 @@ import {Type} from "../common/Type.sol";
 import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
 import {Governable} from "../utils/Governable.sol";
 
-contract ERC3525ApproveAuthorization is FunctionAuthorization {
+contract ERC3525Authorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuardian_ERC3525ApproveAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC3525Authorization";
     int256 public constant VERSION = 1;
 
     string internal constant ERC3525_APPROVE_ID_FUNC = "approve(address,uint256)";
     string internal constant ERC3525_APPROVE_VALUE_FUNC = "approve(uint256,address,uint256)";
-    
+
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
     event TokenSpenderAdded(address indexed token, address indexed spender);
@@ -106,14 +106,17 @@ contract ERC3525ApproveAuthorization is FunctionAuthorization {
     {
         result = super._checkSingleTx(from_, to_, data_, value_);
         if (result.success) {
-            if (data_.length == 68) {  // approve id
-                (address spender, /* uint256 tokenId */) = abi.decode(data_[4:], (address, uint256));
+            if (data_.length == 68) {
+                // approve id
+                (address spender, /* uint256 tokenId */ ) = abi.decode(data_[4:], (address, uint256));
                 if (!_allowedTokenSpenders[to_].contains(spender)) {
                     result.success = false;
                     result.message = "ERC3525ApproveAuthorization: ERC3525 id spender not allowed";
                 }
-            } else {  // approve value
-                (/* uint256 tokenId */, address spender, /* uint256 allowance */) = abi.decode(data_[4:], (uint256, address, uint256));
+            } else {
+                // approve value
+                ( /* uint256 tokenId */ , address spender, /* uint256 allowance */ ) =
+                    abi.decode(data_[4:], (uint256, address, uint256));
                 if (!_allowedTokenSpenders[to_].contains(spender)) {
                     result.success = false;
                     result.message = "ERC3525ApproveAuthorization: ERC3525 value spender not allowed";
