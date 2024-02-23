@@ -32,38 +32,21 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         safeMultiSendContract = safeMultiSendContract_;
     }
 
-    function addContractFuncs(address contract_, address acl_, string[] memory funcList_)
-        external
-        virtual
-        onlyGovernor
-    {
+    function _addContractFuncsWithACL(address contract_, address acl_, string[] memory funcList_) internal virtual {
         _addContractFuncs(contract_, funcList_);
         if (acl_ != address(0)) {
             _setContractACL(contract_, acl_);
         }
     }
 
-    function removeContractFuncs(address contract_, string[] calldata funcList_) external virtual onlyGovernor {
-        _removeContractFuncs(contract_, funcList_);
-    }
-
-    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_)
-        external
+    function _addContractFuncsSigWithACL(address contract_, address acl_, bytes4[] calldata funcSigList_)
+        internal
         virtual
-        onlyGovernor
     {
         _addContractFuncsSig(contract_, funcSigList_);
         if (acl_ != address(0)) {
             _setContractACL(contract_, acl_);
         }
-    }
-
-    function removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
-        _removeContractFuncsSig(contract_, funcSigList_);
-    }
-
-    function setContractACL(address contract_, address acl_) external virtual onlyGovernor {
-        _setContractACL(contract_, acl_);
     }
 
     function getAllContracts() public view virtual returns (address[] memory) {

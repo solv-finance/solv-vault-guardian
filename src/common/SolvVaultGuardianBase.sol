@@ -83,6 +83,30 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         return _toAddresses.values();
     }
 
+    function addContractFuncs(address contract_, address acl_, string[] memory funcList_)
+        external
+        virtual
+        onlyGovernor
+    {
+        _addContractFuncsWithACL(contract_, acl_, funcList_);
+    }
+
+    function removeContractFuncs(address contract_, string[] calldata funcList_) external virtual onlyGovernor {
+        _removeContractFuncs(contract_, funcList_);
+    }
+
+    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_)
+        external
+        virtual
+        onlyGovernor
+    {
+        _addContractFuncsSigWithACL(contract_, acl_, funcSigList_);
+    }
+
+    function setContractACL(address contract_, address acl_) external virtual onlyGovernor {
+        _setContractACL(contract_, acl_);
+    }
+
     function _addAuthorization(address to_, address authorization_) internal virtual {
         require(!_toAddresses.contains(to_), "SolvVaultGuardian: authorization already exist");
         require(authorizations[to_] == address(0), "SolvVaultGuardian: guard already exist");
