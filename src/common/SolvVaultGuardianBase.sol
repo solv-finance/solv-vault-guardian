@@ -10,21 +10,17 @@ import {FunctionAuthorization} from "./FunctionAuthorization.sol";
 contract SolvVaultGuardianBase is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    struct Authorization {
-        string name;
-        address executor;
-        bool enabled;
-    }
+    event AllowSetGuard(bool isSetGuardAllowed);
+    event AddAuthorization(address indexed to, address indexed authorization);
+    event RemoveAuthorization(address indexed to, address indexed authorization);
+    event UpdateAuthorization(address indexed to, address indexed oldAuthorization, address newAuthorization);
+    event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed);
+    event AddNativeTokenReceiver(address indexed receiver);
+    event RemoveNativeTokenReceiver(address indexed receiver);
 
-    event AllowSetGuard(bool isSetGuardAllowed_);
-    event AddAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event RemoveAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event SetAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed_);
-    event AddNativeTokenReceiver(address indexed receiver_);
-    event RemoveNativeTokenReceiver(address indexed receiver_);
-
-    Authorization[] public authorizations;
+    EnumerableSet.AddressSet internal _toAddresses;
+    //to => authorization
+    mapping(address => address) public authorizations;
 
     address public immutable safeAccount;
     bool public allowSetGuard;
@@ -37,10 +33,6 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         safeAccount = safeAccount_;
         _setGuardAllowed(allowSetGuard_);
         _setNativeTokenTransferAllowed(false);
-
-        Authorization memory self =
-            Authorization({name: "SolvVaultGuardian_GeneralAuthorization", executor: address(this), enabled: true});
-        authorizations.push(self);
     }
 
     function setGuardAllowed(bool allowed_) external virtual onlyGovernor {
@@ -75,49 +67,43 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         }
     }
 
-    function addAuthorizations(Authorization[] calldata authorizations_) external virtual onlyGovernor {
-        for (uint256 i = 0; i < authorizations_.length; i++) {
-            _addAuthorization(authorizations_[i]);
-        }
+    function addAuthorizations(address to_, address authorization_) external virtual onlyGovernor {
+        _addAuthorization(to_, authorization_);
     }
 
-    function removeAuthorizations(address[] calldata executors_) external virtual onlyGovernor {
-        for (uint256 i = 0; i < executors_.length; i++) {
-            _removeAuthorization(executors_[i]);
-        }
+    function removeAuthorizations(address to_) external virtual onlyGovernor {
+        _removeAuthorization(to_);
     }
 
-    function setAuthorizationEnabled(address executor_, bool enabled_) external virtual onlyGovernor {
-        _setAuthorizationEnabled(executor_, enabled_);
+    function updateAuthorization(address to_, address newAuthorization_) external virtual onlyGovernor {
+        _updateAuthorization(to_, newAuthorization_);
     }
 
-    function _addAuthorization(Authorization memory _authorization) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            require(authorizations[i].executor != _authorization.executor, "SolvVaultGuardian: guard already exist");
-        }
-        authorizations.push(_authorization);
-        emit AddAuthorization(_authorization.name, _authorization.executor, _authorization.enabled);
+    function getAllToAddresses() external view virtual returns (address[] memory) {
+        return _toAddresses.values();
     }
 
-    function _removeAuthorization(address _executor) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].executor == _executor) {
-                emit RemoveAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
-                authorizations[i] = authorizations[authorizations.length - 1];
-                authorizations.pop();
-                break;
-            }
-        }
+    function _addAuthorization(address to_, address authorization_) internal virtual {
+        require(!_toAddresses.contains(to_), "SolvVaultGuardian: authorization already exist");
+        require(authorizations[to_] == address(0), "SolvVaultGuardian: guard already exist");
+        _toAddresses.add(to_);
+        authorizations[to_] = authorization_;
+        emit AddAuthorization(to_, authorization_);
     }
 
-    function _setAuthorizationEnabled(address executor_, bool enabled_) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].executor == executor_) {
-                authorizations[i].enabled = enabled_;
-                emit SetAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
-                break;
-            }
-        }
+    function _removeAuthorization(address to_) internal virtual {
+        require(_toAddresses.contains(to_), "SolvVaultGuardian: authorization not exist");
+        address old = authorizations[to_];
+        authorizations[to_] = address(0);
+        _toAddresses.remove(to_);
+        emit RemoveAuthorization(to_, old);
+    }
+
+    function _updateAuthorization(address to_, address newAuthorization_) internal virtual {
+        require(_toAddresses.contains(to_), "SolvVaultGuardian: authorization not exist");
+        address old = authorizations[to_];
+        authorizations[to_] = newAuthorization_;
+        emit UpdateAuthorization(to_, old, newAuthorization_);
     }
 
     function _checkSafeTransaction(address to, uint256 value, bytes calldata data, address msgSender)
@@ -135,16 +121,22 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
             return;
         }
 
-        //check authorizations check
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].enabled) {
-                Type.CheckResult memory result =
-                    BaseAuthorization(authorizations[i].executor).authorizationCheckTransaction(txData);
-                //if return true, then passed
-                if (result.success) {
-                    return;
-                }
+        //authorization check
+        if (authorizations[to] != address(0)) {
+            Type.CheckResult memory result = BaseAuthorization(authorizations[to]).authorizationCheckTransaction(txData);
+            if (!result.success) {
+                revert(result.message);
             }
+            return;
+        }
+
+        //general config check
+        if (_contracts.contains(to)) {
+            Type.CheckResult memory result = BaseAuthorization(address(this)).authorizationCheckTransaction(txData);
+            if (!result.success) {
+                revert(result.message);
+            }
+            return;
         }
 
         revert("SolvVaultGuardian: checkTransaction failed");
