@@ -13,26 +13,30 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     event AllowSetGuard(bool isSetGuardAllowed);
-    event AddAuthorization(address indexed to, address indexed authorization);
+    event SetAuthorization(address indexed to, address indexed authorization);
     event RemoveAuthorization(address indexed to, address indexed authorization);
-    event UpdateAuthorization(address indexed to, address indexed oldAuthorization, address newAuthorization);
     event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed);
     event AddNativeTokenReceiver(address indexed receiver);
     event RemoveNativeTokenReceiver(address indexed receiver);
+
+    string public constant SAFE_MULITSEND_FUNC_MULTI_SEND = "multiSend(bytes)";
 
     EnumerableSet.AddressSet internal _toAddresses;
     //to => authorization
     mapping(address => address) public authorizations;
 
     address public immutable safeAccount;
+    address public immutable safeMultiSend;
+
     bool public allowSetGuard;
     bool public allowNativeTokenTransfer;
     mapping(address => bool) public nativeTokenReceiver;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
-        FunctionAuthorization(safeMultiSend_, address(this), governor_)
+        FunctionAuthorization(address(this), governor_)
     {
         safeAccount = safeAccount_;
+        safeMultiSend = safeMultiSend_;
         _setGuardAllowed(allowSetGuard_);
         _setNativeTokenTransferAllowed(false);
     }
@@ -69,16 +73,12 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         }
     }
 
-    function addAuthorizations(address to_, address authorization_) external virtual onlyGovernor {
-        _addAuthorization(to_, authorization_);
+    function setAuthorization(address to_, address authorization_) external virtual onlyGovernor {
+        _setAuthorization(to_, authorization_);
     }
 
-    function removeAuthorizations(address to_) external virtual onlyGovernor {
+    function removeAuthorization(address to_) external virtual onlyGovernor {
         _removeAuthorization(to_);
-    }
-
-    function updateAuthorization(address to_, address newAuthorization_) external virtual onlyGovernor {
-        _updateAuthorization(to_, newAuthorization_);
     }
 
     function getAllToAddresses() external view virtual returns (address[] memory) {
@@ -109,49 +109,72 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         _setContractACL(contract_, acl_);
     }
 
-    function _addAuthorization(address to_, address authorization_) internal virtual {
-        require(!_toAddresses.contains(to_), "SolvVaultGuardian: authorization already exist");
-        require(authorizations[to_] == address(0), "SolvVaultGuardian: guard already exist");
+    function _setAuthorization(address to_, address authorization_) internal virtual {
         require(
             IERC165(authorization_).supportsInterface(type(IBaseAuthorization).interfaceId),
-            "SolvVaultGuardian: authorization_ is not IBaseAuthorization"
+            "SolvVaultGuardian: invalid authorization"
         );
         _toAddresses.add(to_);
         authorizations[to_] = authorization_;
-        emit AddAuthorization(to_, authorization_);
+        emit SetAuthorization(to_, authorization_);
     }
 
     function _removeAuthorization(address to_) internal virtual {
         require(_toAddresses.contains(to_), "SolvVaultGuardian: authorization not exist");
         address old = authorizations[to_];
-        authorizations[to_] = address(0);
+        delete authorizations[to_];
         _toAddresses.remove(to_);
         emit RemoveAuthorization(to_, old);
-    }
-
-    function _updateAuthorization(address to_, address newAuthorization_) internal virtual {
-        require(_toAddresses.contains(to_), "SolvVaultGuardian: authorization not exist");
-        address old = authorizations[to_];
-        authorizations[to_] = newAuthorization_;
-        emit UpdateAuthorization(to_, old, newAuthorization_);
     }
 
     function _checkSafeTransaction(address to, uint256 value, bytes calldata data, address msgSender)
         internal
         virtual
     {
-        if (to == safeAccount && data.length == 0) {
-            return;
+        if (data.length == 0) {
+            return _checkNativeTransfer(to, value);
         }
+
+        if (data.length < 4) {
+            revert("FunctionAuthorization: invalid txData");
+        }
+
+        bytes4 selector = _getSelector(data);
+
+        if (to == safeMultiSend && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
+            return _checkMultiSendTransactions(to, value, data, msgSender);
+        } else {
+            return _checkSingleTransaction(to, value, data, msgSender);
+        }
+    }
+
+    function _checkMultiSendTransactions(address /* to */, uint256 /* value */, bytes calldata data, address msgSender)
+        internal 
+        virtual 
+    {
+        uint256 multiSendDataLength = uint256(bytes32(data[4 + 32:4 + 32 + 32]));
+        bytes calldata multiSendData = data[4 + 32 + 32:4 + 32 + 32 + multiSendDataLength];
+        uint256 startIndex = 0;
+        while (startIndex < multiSendData.length) {
+            (address innerTo, uint256 innerValue, bytes calldata innerData, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
+            _checkSafeTransaction(innerTo, innerValue, innerData, msgSender);
+            startIndex = endIndex;
+        }
+    }
+
+    function _checkSingleTransaction(address to, uint256 value, bytes calldata data, address msgSender) 
+        internal 
+        virtual 
+    {
         Type.TxData memory txData = Type.TxData({from: msgSender, to: to, value: value, data: data});
 
-        //check safe account setGuard
-        if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
+        // check safe account setGuard
+        if (to == safeAccount && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
             require(allowSetGuard, "SolvVaultGuardian: setGuard disabled");
             return;
         }
 
-        //authorization check
+        // authorization check
         if (authorizations[to] != address(0)) {
             Type.CheckResult memory result = BaseAuthorization(authorizations[to]).authorizationCheckTransaction(txData);
             if (!result.success) {
@@ -160,7 +183,7 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
             return;
         }
 
-        //general config check
+        // general config check
         if (_contracts.contains(to)) {
             Type.CheckResult memory result = BaseAuthorization(address(this)).authorizationCheckTransaction(txData);
             if (!result.success) {
@@ -169,27 +192,53 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
             return;
         }
 
-        revert("SolvVaultGuardian: checkTransaction failed");
+        revert("SolvVaultGuardian: unauthorized contract");
     }
 
-    function _checkNativeTransfer(address to_, uint256 /* value_ */ )
-        internal
-        view
-        virtual
-        override
-        returns (Type.CheckResult memory result_)
-    {
+    function _checkNativeTransfer(address to, uint256 /* value_ */ ) internal view virtual {
+        if (to == safeAccount) {
+            return;
+        }
         if (allowNativeTokenTransfer) {
-            if (nativeTokenReceiver[to_]) {
-                result_.success = true;
-                result_.message = "SolvVaultGuardian: native token transfer allowed";
+            if (nativeTokenReceiver[to]) {
+                return;
             } else {
-                result_.success = false;
-                result_.message = "SolvVaultGuardian: native token receiver not allowed";
+                revert("SolvVaultGuardian: native token receiver not allowed");
             }
         } else {
-            result_.success = false;
-            result_.message = "SolvVaultGuardian: native token transfer not allowed";
+            revert("SolvVaultGuardian: native token transfer not allowed");
         }
     }
+
+    function _unpackMultiSend(bytes calldata transactions, uint256 startIndex)
+        internal
+        pure
+        virtual
+        returns (address to, uint256 value, bytes calldata data, uint256 endIndex)
+    {
+        uint256 offset = 0;
+        uint256 length = 1;
+        offset += length;
+
+        // address 20 bytes
+        length = 20;
+        to = address(bytes20(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // value 32 bytes
+        length = 32;
+        value = uint256(bytes32(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // datalength 32 bytes
+        length = 32;
+        uint256 dataLength = uint256(bytes32(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // data
+        data = transactions[startIndex + offset:startIndex + offset + dataLength];
+
+        endIndex = startIndex + offset + dataLength;
+    }
+
 }

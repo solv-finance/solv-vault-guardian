@@ -14,12 +14,11 @@ contract SolvOpenEndFundAuthorization is FunctionAuthorization {
     string public constant REDEMPTION_FUNC_REPAY = "repay(uint256,address,uint256)";
 
     constructor(
-        address safeMultiSendContract_,
         address caller_,
         address openEndFundShare_,
         address openEndFundRedemption_,
         bytes32[] memory repayablePoolIds_
-    ) FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) {
+    ) FunctionAuthorization(caller_, Governable(caller_).governor()) {
         string[] memory openEndFundShareFuncs = new string[](1);
         openEndFundShareFuncs[0] = SHARE_FUNC_REPAY;
         _addContractFuncs(openEndFundShare_, openEndFundShareFuncs);

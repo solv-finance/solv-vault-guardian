@@ -14,25 +14,17 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant SAFE_MULITSEND_FUNC_MULTI_SEND = "multiSend(bytes)";
-
     event AddContractFunc(address indexed contract_, string func_, address indexed sender_);
     event AddContractFuncSig(address indexed contract_, bytes4 indexed funcSig_, address indexed sender_);
     event RemoveContractFunc(address indexed contract_, string func_, address indexed sender_);
     event RemoveContractFuncSig(address indexed contract_, bytes4 indexed funcSig_, address indexed sender_);
     event SetContractACL(address indexed contract_, address indexed acl_, address indexed sender_);
 
-    address public immutable safeMultiSendContract;
     EnumerableSet.AddressSet internal _contracts;
     mapping(address => EnumerableSet.Bytes32Set) internal _allowedContractToFunctions;
-    //contract => acl
     mapping(address => address) internal _contractACL;
 
-    constructor(address safeMultiSendContract_, address caller_, address governor_)
-        BaseAuthorization(caller_, governor_)
-    {
-        safeMultiSendContract = safeMultiSendContract_;
-    }
+    constructor(address caller_, address governor_) BaseAuthorization(caller_, governor_) {}
 
     function _addContractFuncsWithACL(address contract_, address acl_, string[] memory funcList_) internal virtual {
         _addContractFuncs(contract_, funcList_);
@@ -140,105 +132,18 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         internal
         virtual
         override
-        returns (Type.CheckResult memory result)
-    {
-        return _authorizationCheckTransactionWithRecursion(txData_.from, txData_.to, txData_.data, txData_.value);
-    }
-
-    function _authorizationCheckTransactionWithRecursion(
-        address from_,
-        address to_,
-        bytes calldata data_,
-        uint256 value_
-    ) internal virtual returns (Type.CheckResult memory result_) {
-        if (data_.length == 0) {
-            return _checkNativeTransfer(to_, value_);
-        }
-
-        if (data_.length < 4) {
-            result_.success = false;
-            result_.message = "FunctionAuthorization: invalid txData";
-            return result_;
-        }
-
-        bytes4 selector = _getSelector(data_);
-
-        if (to_ == safeMultiSendContract && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
-            result_ = _checkMultiSend(from_, to_, data_, value_);
-        } else {
-            result_ = _checkSingleTx(from_, to_, data_, value_);
-        }
-    }
-
-    function _checkMultiSend(address from_, address, /* to_ */ bytes calldata transactions_, uint256 /* value_ */ )
-        internal
-        virtual
         returns (Type.CheckResult memory result_)
     {
-        uint256 multiSendDataLength = uint256(bytes32(transactions_[4 + 32:4 + 32 + 32]));
-        bytes calldata multiSendData = transactions_[4 + 32 + 32:4 + 32 + 32 + multiSendDataLength];
-        uint256 startIndex = 0;
-        while (startIndex < multiSendData.length) {
-            (address to, uint256 value, bytes calldata data, uint256 endIndex) =
-                _unpackMultiSend(multiSendData, startIndex);
-            if (to != address(0)) {
-                result_ = _authorizationCheckTransactionWithRecursion(from_, to, data, value);
-                if (!result_.success) {
-                    return result_;
-                }
-            }
-
-            startIndex = endIndex;
-        }
-
-        result_.success = true;
-    }
-
-    function _unpackMultiSend(bytes calldata transactions_, uint256 startIndex_)
-        internal
-        pure
-        virtual
-        returns (address to_, uint256 value_, bytes calldata data_, uint256 endIndex_)
-    {
-        uint256 offset = 0;
-        uint256 length = 1;
-        offset += length;
-
-        //address 20 bytes
-        length = 20;
-        to_ = address(bytes20(transactions_[startIndex_ + offset:startIndex_ + offset + length]));
-        offset += length;
-
-        //value 32 bytes
-        length = 32;
-        value_ = uint256(bytes32(transactions_[startIndex_ + offset:startIndex_ + offset + length]));
-        offset += length;
-
-        //datalength 32 bytes
-        length = 32;
-        uint256 dataLength = uint256(bytes32(transactions_[startIndex_ + offset:startIndex_ + offset + length]));
-        offset += length;
-
-        //data
-        data_ = transactions_[startIndex_ + offset:startIndex_ + offset + dataLength];
-
-        endIndex_ = startIndex_ + offset + dataLength;
-    }
-
-    function _checkSingleTx(address from_, address to_, bytes calldata data_, uint256 value_)
-        internal
-        virtual
-        returns (Type.CheckResult memory result_)
-    {
-        bytes4 selector = _getSelector(data_);
-        if (_isAllowedSelector(to_, selector)) {
+        bytes4 selector = _getSelector(txData_.data);
+        if (_isAllowedSelector(txData_.to, selector)) {
             result_.success = true;
-            //if allowed, check acl
-            if (_contractACL[to_] != address(0)) {
-                try BaseACL(_contractACL[to_]).preCheck(from_, to_, data_, value_) returns (
-                    Type.CheckResult memory result
+            // further check acl if contract is authorized
+            address acl = _contractACL[txData_.to];
+            if (acl != address(0)) {
+                try BaseACL(acl).preCheck(txData_.from, txData_.to, txData_.data, txData_.value) returns (
+                    Type.CheckResult memory aclCheckResult
                 ) {
-                    return result;
+                    return aclCheckResult;
                 } catch Error(string memory reason) {
                     result_.success = false;
                     result_.message = reason;
@@ -261,16 +166,5 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         assembly {
             selector_ := calldataload(data_.offset)
         }
-    }
-
-    // to allow native token transferring, must override this function
-    function _checkNativeTransfer(address, /* to */ uint256 /* value_ */ )
-        internal
-        view
-        virtual
-        returns (Type.CheckResult memory result_)
-    {
-        result_.success = false;
-        result_.message = "FunctionAuthorization: native token transfer not allowed";
     }
 }

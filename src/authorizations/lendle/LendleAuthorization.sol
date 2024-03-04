@@ -18,13 +18,12 @@ contract LendleAuthorization is FunctionAuthorization {
      * Lendle LendingPool: 0xCFa5aE7c2CE8Fadc6426C1ff872cA45378Fb7cF3
      */
     constructor(
-        address safeMultiSendContract_,
         address caller_,
         address safeAccount_,
         address lendingPool_,
         address[] memory assetWhitelist_
     ) 
-        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) 
+        FunctionAuthorization(caller_, Governable(caller_).governor()) 
     {
         string[] memory lendingPoolFuncs = new string[](5);
         lendingPoolFuncs[0] = "deposit(address,uint256,address,uint16)";

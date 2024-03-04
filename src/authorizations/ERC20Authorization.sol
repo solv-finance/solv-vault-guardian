@@ -10,7 +10,7 @@ import {Governable} from "../utils/Governable.sol";
 contract ERC20Authorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuardian_ERC20ApproveAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC20Authorization";
     int256 public constant VERSION = 1;
 
     string internal constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
@@ -38,19 +38,20 @@ contract ERC20Authorization is FunctionAuthorization {
     }
 
     address public safeAccount;
+
     string[] internal _approveFuncs;
     string[] internal _transferFuncs;
 
     EnumerableSet.AddressSet internal _tokenSet;
+
     mapping(address => EnumerableSet.AddressSet) internal _allowedTokenSpenders;
     mapping(address => EnumerableSet.AddressSet) internal _allowedTokenReceivers;
 
     constructor(
-        address safeMultiSendContract_,
         address caller_,
         TokenSpenders[] memory tokenSpenders_,
         TokenReceivers[] memory tokenReceivers_
-    ) FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) {
+    ) FunctionAuthorization(caller_, Governable(caller_).governor()) {
         _approveFuncs = new string[](3);
         _approveFuncs[0] = ERC20_APPROVE_FUNC;
         _approveFuncs[1] = ERC20_INCREASE_ALLOWANCE_FUNC;
@@ -70,48 +71,6 @@ contract ERC20Authorization is FunctionAuthorization {
         _removeTokenSpenders(tokenSpendersList_);
     }
 
-    function _addTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
-        for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
-            _addTokenSpenders(_tokenSpendersList[i]);
-        }
-    }
-
-    function _removeTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
-        for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
-            _removeTokenSpenders(_tokenSpendersList[i]);
-        }
-    }
-
-    function _addTokenSpenders(TokenSpenders memory _tokenSpenders) internal virtual {
-        address token = _tokenSpenders.token;
-        address[] memory spenders = _tokenSpenders.spenders;
-        if (_tokenSet.add(token)) {
-            _addContractFuncs(token, _approveFuncs);
-            emit TokenAdded(token);
-        }
-        for (uint256 i = 0; i < spenders.length; i++) {
-            if (_allowedTokenSpenders[token].add(spenders[i])) {
-                emit TokenSpenderAdded(token, spenders[i]);
-            }
-        }
-    }
-
-    function _removeTokenSpenders(TokenSpenders memory _tokenSpenders) internal virtual {
-        address token = _tokenSpenders.token;
-        address[] memory spenders = _tokenSpenders.spenders;
-        for (uint256 i = 0; i < spenders.length; i++) {
-            if (_allowedTokenSpenders[token].remove(spenders[i])) {
-                emit TokenSpenderAdded(token, spenders[i]);
-            }
-        }
-        if (_allowedTokenSpenders[token].length() == 0) {
-            if (_tokenSet.remove(token)) {
-                _removeContractFuncs(token, _approveFuncs);
-                emit TokenRemoved(token);
-            }
-        }
-    }
-
     function addTokenReceivers(TokenReceivers[] calldata tokenReceiversList_) external virtual onlyGovernor {
         _addTokenReceivers(tokenReceiversList_);
     }
@@ -120,45 +79,81 @@ contract ERC20Authorization is FunctionAuthorization {
         _removeTokenReceivers(tokenReceiversList_);
     }
 
+    function removeToken(address token_) external virtual onlyGovernor {
+        _removeToken(token_);
+    }
+
+    function _addTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
+        for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
+            _addTokenSpenders(_tokenSpendersList[i].token, _tokenSpendersList[i].spenders);
+        }
+    }
+
+    function _removeTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
+        for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
+            _removeTokenSpenders(_tokenSpendersList[i].token, _tokenSpendersList[i].spenders);
+        }
+    }
+
+    function _addTokenSpenders(address _token, address[] memory _spenders) internal virtual {
+        if (_tokenSet.add(_token)) {
+            emit TokenAdded(_token);
+        }
+        _addContractFuncs(_token, _approveFuncs);
+        for (uint256 i = 0; i < _spenders.length; i++) {
+            if (_allowedTokenSpenders[_token].add(_spenders[i])) {
+                emit TokenSpenderAdded(_token, _spenders[i]);
+            }
+        }
+    }
+
+    function _removeTokenSpenders(address _token, address[] memory _spenders) internal virtual {
+        for (uint256 i = 0; i < _spenders.length; i++) {
+            if (_allowedTokenSpenders[_token].remove(_spenders[i])) {
+                emit TokenSpenderAdded(_token, _spenders[i]);
+            }
+        }
+    }
+
     function _addTokenReceivers(TokenReceivers[] memory _tokenReceiversList) internal virtual {
         for (uint256 i = 0; i < _tokenReceiversList.length; i++) {
-            _addTokenReceivers(_tokenReceiversList[i]);
+            _addTokenReceivers(_tokenReceiversList[i].token, _tokenReceiversList[i].receivers);
         }
     }
 
     function _removeTokenReceivers(TokenReceivers[] memory _tokenReceiversList) internal virtual {
         for (uint256 i = 0; i < _tokenReceiversList.length; i++) {
-            _removeTokenReceivers(_tokenReceiversList[i]);
+            _removeTokenReceivers(_tokenReceiversList[i].token, _tokenReceiversList[i].receivers);
         }
     }
 
-    function _addTokenReceivers(TokenReceivers memory _tokenReceivers) internal virtual {
-        address token = _tokenReceivers.token;
-        address[] memory receivers = _tokenReceivers.receivers;
-        if (_tokenSet.add(token)) {
-            _addContractFuncs(token, _transferFuncs);
-            emit TokenAdded(token);
+    function _addTokenReceivers(address _token, address[] memory _receivers) internal virtual {
+        if (_tokenSet.add(_token)) {
+            emit TokenAdded(_token);
         }
-        for (uint256 i = 0; i < receivers.length; i++) {
-            if (_allowedTokenReceivers[token].add(receivers[i])) {
-                emit TokenReceiverAdded(token, receivers[i]);
+        _addContractFuncs(_token, _transferFuncs);
+        for (uint256 i = 0; i < _receivers.length; i++) {
+            if (_allowedTokenReceivers[_token].add(_receivers[i])) {
+                emit TokenReceiverAdded(_token, _receivers[i]);
             }
         }
     }
 
-    function _removeTokenReceivers(TokenReceivers memory _tokenReceivers) internal virtual {
-        address token = _tokenReceivers.token;
-        address[] memory receivers = _tokenReceivers.receivers;
-        for (uint256 i = 0; i < receivers.length; i++) {
-            if (_allowedTokenReceivers[token].remove(receivers[i])) {
-                emit TokenReceiverAdded(token, receivers[i]);
+    function _removeTokenReceivers(address _token, address[] memory _receivers) internal virtual {
+        for (uint256 i = 0; i < _receivers.length; i++) {
+            if (_allowedTokenReceivers[_token].remove(_receivers[i])) {
+                emit TokenReceiverAdded(_token, _receivers[i]);
             }
         }
-        if (_allowedTokenReceivers[token].length() == 0) {
-            if (_tokenSet.remove(token)) {
-                _removeContractFuncs(token, _transferFuncs);
-                emit TokenRemoved(token);
-            }
+    }
+
+    function _removeToken(address _token) internal virtual {
+        _removeTokenSpenders(_token, _allowedTokenSpenders[_token].values());
+        _removeTokenReceivers(_token, _allowedTokenReceivers[_token].values());
+        if (_tokenSet.remove(_token)) {
+            _removeContractFuncs(_token, _approveFuncs);
+            _removeContractFuncs(_token, _transferFuncs);
+            emit TokenRemoved(_token);
         }
     }
 
@@ -166,35 +161,36 @@ contract ERC20Authorization is FunctionAuthorization {
         return _tokenSet.values();
     }
 
-    function getTokenReceivers(address token) external view returns (address[] memory) {
-        return _allowedTokenReceivers[token].values();
-    }
-
     function getTokenSpenders(address token) external view returns (address[] memory) {
         return _allowedTokenSpenders[token].values();
     }
 
-    function _checkSingleTx(address from_, address to_, bytes calldata data_, uint256 value_)
+    function getTokenReceivers(address token) external view returns (address[] memory) {
+        return _allowedTokenReceivers[token].values();
+    }
+
+    function _authorizationCheckTransaction(Type.TxData calldata txData_)
         internal
         virtual
         override
         returns (Type.CheckResult memory result)
     {
-        result = super._checkSingleTx(from_, to_, data_, value_);
+        result = super._authorizationCheckTransaction(txData_);
         if (result.success) {
-            if (_getSelector(data_) == TRANSFER_SELECTOR) {
-                (address to, /* uint256 value */ ) = abi.decode(data_[4:], (address, uint256));
-                if (!_allowedTokenReceivers[to_].contains(to)) {
+            if (_getSelector(txData_.data) == TRANSFER_SELECTOR) {
+                (address receiver, /* uint256 value */ ) = abi.decode(txData_.data[4:], (address, uint256));
+                if (!_allowedTokenReceivers[txData_.to].contains(receiver)) {
                     result.success = false;
-                    result.message = "ERC20TransferAuthorization: ERC20 receiver not allowed";
+                    result.message = "ERC20Authorization: ERC20 receiver not allowed";
                 }
             } else {
-                (address spender, /* uint256 allowance */ ) = abi.decode(data_[4:], (address, uint256));
-                if (!_allowedTokenSpenders[to_].contains(spender)) {
+                (address spender, /* uint256 allowance */ ) = abi.decode(txData_.data[4:], (address, uint256));
+                if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
-                    result.message = "ERC20ApproveAuthorization: ERC20 spender not allowed";
+                    result.message = "ERC20Authorization: ERC20 spender not allowed";
                 }
             }
         }
     }
 }
+

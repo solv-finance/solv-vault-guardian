@@ -14,13 +14,12 @@ contract SolvMasterFundAuthorization is FunctionAuthorization {
     uint256 public constant VERSION = 1;
 
     constructor(
-        address safeMultiSendContract_,
         address caller_,
         address safeAccount_,
         address openFundMarket_,
         bytes32[] memory poolIdWhitelist_
     ) 
-        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) 
+        FunctionAuthorization(caller_, Governable(caller_).governor()) 
     {
         string[] memory openFundMarketFuncs = new string[](3);
         openFundMarketFuncs[0] = "subscribe(bytes32,uint256,uint256,uint64)";

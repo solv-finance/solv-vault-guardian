@@ -13,8 +13,8 @@ contract GMXV1Authorization is FunctionAuthorization {
     address public constant GMX_REWAED_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
     address public constant GMX_REWAED_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 
-    constructor(address safeAccount_, address safeMultiSendContract_, address caller_)
-        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor())
+    constructor(address safeAccount_, address caller_)
+        FunctionAuthorization(caller_, Governable(caller_).governor())
     {
         string[] memory glpRewardRouterV2Funcs = new string[](3);
         glpRewardRouterV2Funcs[0] = "handleRewards(bool,bool,bool,bool,bool,bool,bool)";

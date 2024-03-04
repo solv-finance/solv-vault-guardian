@@ -16,13 +16,12 @@ contract AgniAuthorization is FunctionAuthorization {
      * Agni SwapRouter: 0x319B69888b0d11cEC22caA5034e25FfFBDc88421
      */
     constructor(
-        address safeMultiSendContract_,
         address caller_,
         address safeAccount_,
         address agniSwapRouter_,
         address[] memory swapTokenWhitelist_
     ) 
-        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor()) 
+        FunctionAuthorization(caller_, Governable(caller_).governor()) 
     {
         string[] memory agniSwapRouterFuncs = new string[](2);
         agniSwapRouterFuncs[0] = "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))";
