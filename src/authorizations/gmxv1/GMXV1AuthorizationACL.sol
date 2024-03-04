@@ -11,7 +11,6 @@ contract GMXV1AuthorizationACL is BaseACL {
     string public constant NAME = "SolvVaultGuard_GMXV1AuthorizationACL";
     uint256 public constant VERSION = 1;
 
-    address public constant GLP_REWAED_ROUTER = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
     address public constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     EnumerableSet.AddressSet internal _allowTokens;

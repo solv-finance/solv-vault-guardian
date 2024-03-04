@@ -23,8 +23,6 @@ contract ERC20Authorization is FunctionAuthorization {
     string internal constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
     bytes4 internal constant TRANSFER_SELECTOR = 0xa9059cbb;
 
-    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
     event TokenSpenderAdded(address indexed token, address indexed spender);
