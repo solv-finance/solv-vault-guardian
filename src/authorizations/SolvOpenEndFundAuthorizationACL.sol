@@ -72,11 +72,6 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
         _checkRepayment(slot_, repayCurrencyAmount_);
     }
 
-    function repayWithBalance(uint256 slot_, address, /* currency_ */ uint256 repayCurrencyAmount_) external view {
-        require(_txn().value == 0, "SolvOpenEndFundAuthorizationACL: transaction value not allowed");
-        _checkRepayment(slot_, repayCurrencyAmount_);
-    }
-
     function _checkRepayment(uint256 slot, uint256 repayCurrencyAmount) internal view {
         string memory contractType = ISFTDelegate(solvV3OpenEndFundRedemption).contractType();
         address concrete = ISFTDelegate(solvV3OpenEndFundRedemption).concrete();
