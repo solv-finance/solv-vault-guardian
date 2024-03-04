@@ -118,6 +118,7 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
     }
 
     function _setContractACL(address contract_, address acl_) internal virtual {
+        require(_contracts.contains(contract_), "FunctionAuthorization: contract not exist");
         if (acl_ != address(0)) {
             require(
                 IERC165(acl_).supportsInterface(type(IBaseACL).interfaceId),
