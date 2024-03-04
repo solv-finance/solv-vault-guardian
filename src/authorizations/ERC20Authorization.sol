@@ -16,6 +16,9 @@ contract ERC20Authorization is FunctionAuthorization {
     string internal constant ERC20_APPROVE_FUNC = "approve(address,uint256)";
     string internal constant ERC20_INCREASE_ALLOWANCE_FUNC = "increaseAllowance(address,uint256)";
     string internal constant ERC20_DECREASE_ALLOWANCE_FUNC = "decreaseAllowance(address,uint256)";
+    bytes4 internal constant APPROVE_SELECTOR = 0x095ea7b3;
+    bytes4 internal constant INCREASE_ALLOWANCE_SELECTOR = 0x39509351;
+    bytes4 internal constant DECREASE_ALLOWANCE_SELECTOR = 0xa457c2d7;
 
     string internal constant ERC20_TRANSFER_FUNC = "transfer(address,uint256)";
     bytes4 internal constant TRANSFER_SELECTOR = 0xa9059cbb;
@@ -177,18 +180,22 @@ contract ERC20Authorization is FunctionAuthorization {
     {
         result = super._authorizationCheckTransaction(txData_);
         if (result.success) {
-            if (_getSelector(txData_.data) == TRANSFER_SELECTOR) {
+            bytes4 selector = _getSelector(txData_.data);
+            if (selector == TRANSFER_SELECTOR) {
                 (address receiver, /* uint256 value */ ) = abi.decode(txData_.data[4:], (address, uint256));
                 if (!_allowedTokenReceivers[txData_.to].contains(receiver)) {
                     result.success = false;
                     result.message = "ERC20Authorization: ERC20 receiver not allowed";
                 }
-            } else {
+            } else if (selector == APPROVE_SELECTOR || selector == INCREASE_ALLOWANCE_SELECTOR || selector == DECREASE_ALLOWANCE_SELECTOR) {
                 (address spender, /* uint256 allowance */ ) = abi.decode(txData_.data[4:], (address, uint256));
                 if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
                     result.message = "ERC20Authorization: ERC20 spender not allowed";
                 }
+            } else {
+                result.success = false;
+                result.message = "ERC20Authorization: not allowed selector";
             }
         }
     }

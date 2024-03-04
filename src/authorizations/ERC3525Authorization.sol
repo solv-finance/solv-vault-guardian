@@ -15,6 +15,8 @@ contract ERC3525Authorization is FunctionAuthorization {
 
     string internal constant ERC3525_APPROVE_ID_FUNC = "approve(address,uint256)";
     string internal constant ERC3525_APPROVE_VALUE_FUNC = "approve(uint256,address,uint256)";
+    bytes4 internal constant APPROVE_ID_SELECTOR = 0x095ea7b3;
+    bytes4 internal constant APPROVE_VALUE_SELECTOR = 0x8cb0a511;
 
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
@@ -102,21 +104,23 @@ contract ERC3525Authorization is FunctionAuthorization {
     {
         result = super._authorizationCheckTransaction(txData_);
         if (result.success) {
-            if (txData_.data.length == 68) {
-                // approve id
+            bytes4 selector = _getSelector(txData_.data);
+            if (selector == APPROVE_ID_SELECTOR) {
                 (address spender, /* uint256 tokenId */ ) = abi.decode(txData_.data[4:], (address, uint256));
                 if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
                     result.message = "ERC3525Authorization: ERC3525 id spender not allowed";
                 }
-            } else {
-                // approve value
+            } else if (selector == APPROVE_VALUE_SELECTOR) {
                 ( /* uint256 tokenId */ , address spender, /* uint256 allowance */ ) =
                     abi.decode(txData_.data[4:], (uint256, address, uint256));
                 if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
                     result.message = "ERC3525Authorization: ERC3525 value spender not allowed";
                 }
+            } else {
+                result.success = false;
+                result.message = "ERC3525Authorization: not allowed selector";
             }
         }
     }
