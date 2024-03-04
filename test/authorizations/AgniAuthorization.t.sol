@@ -31,11 +31,6 @@ contract AgniAuthorizationTest is SolvVaultGuardianBaseTest {
     function test_AuthorizationInitialStatus() public virtual {
         address acl = _agniAuthorization.getACLByContract(AGNI_SWAP_ROUTER);
         assertNotEq(acl, address(0));
-        assertTrue(AgniAuthorizationACL(acl).checkToken(WETH));
-        assertTrue(AgniAuthorizationACL(acl).checkToken(WBTC));
-        assertTrue(AgniAuthorizationACL(acl).checkToken(USDT));
-        assertFalse(AgniAuthorizationACL(acl).checkToken(ETH));
-        assertFalse(AgniAuthorizationACL(acl).checkToken(USDC));
     }
 
     function test_GuardianInitialStatus() public virtual {

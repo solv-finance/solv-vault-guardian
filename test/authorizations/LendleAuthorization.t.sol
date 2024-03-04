@@ -30,10 +30,6 @@ contract LendleAuthorizationTest is SolvVaultGuardianBaseTest {
     function test_AuthorizationInitialStatus() public virtual {
         address acl = _lendleAuthorization.getACLByContract(LENDLE_POOL);
         assertNotEq(acl, address(0));
-        assertTrue(LendleAuthorizationACL(acl).checkToken(WETH));
-        assertTrue(LendleAuthorizationACL(acl).checkToken(USDT));
-        assertFalse(LendleAuthorizationACL(acl).checkToken(ETH));
-        assertFalse(LendleAuthorizationACL(acl).checkToken(USDC));
     }
 
     function test_GuardianInitialStatus() public virtual {

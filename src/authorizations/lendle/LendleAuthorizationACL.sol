@@ -37,32 +37,32 @@ contract LendleAuthorizationACL is BaseACL {
         }
     }
 
-    function checkToken(address token) public view virtual returns (bool) {
+    function _checkToken(address token) internal view virtual returns (bool) {
         return _tokenWhitelist.contains(token);
     }
 
     function deposit(address asset, uint256 /* amount */, address onBehalfOf, uint16 /* referralCode */) external view virtual {
         require(onBehalfOf == safeAccount, "LendleACL: onBehalfOf not allowed");
-        require(checkToken(asset), "LendleACL: asset not allowed");
+        require(_checkToken(asset), "LendleACL: asset not allowed");
     }
 
     function withdraw(address asset, uint256 /* amount */, address to) external view virtual {
         require(to == safeAccount, "LendleACL: recipient not allowed");
-        require(checkToken(asset), "LendleACL: asset not allowed");
+        require(_checkToken(asset), "LendleACL: asset not allowed");
     }
 
     function borrow(address asset, uint256 /* amount */, uint256 /* interestRateMode */, uint16 /* referralCode */, address onBehalfOf) external view virtual {
         require(onBehalfOf == safeAccount, "LendleACL: onBehalfOf not allowed");
-        require(checkToken(asset), "LendleACL: asset not allowed");
+        require(_checkToken(asset), "LendleACL: asset not allowed");
     }
 
     function repay(address asset, uint256 /* amount */, uint256 /* rateMode */, address onBehalfOf) external view virtual {
         require(onBehalfOf == safeAccount, "LendleACL: onBehalfOf not allowed");
-        require(checkToken(asset), "LendleACL: asset not allowed");
+        require(_checkToken(asset), "LendleACL: asset not allowed");
     }
 
     function swapBorrowRateMode(address asset, uint256 /* rateMode */) external view virtual {
-        require(checkToken(asset), "LendleACL: asset not allowed");
+        require(_checkToken(asset), "LendleACL: asset not allowed");
     }
 
 }

@@ -58,15 +58,15 @@ contract AgniAuthorizationACL is BaseACL {
         }
     }
 
-    function checkToken(address token) public view virtual returns (bool) {
+    function _checkToken(address token) internal view virtual returns (bool) {
         return _tokenWhitelist.contains(token);
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params) external view virtual {
         _checkValueZero();
         require(params.recipient == safeAccount, "AgniACL: recipient not allowed");
-        require(checkToken(params.tokenIn), "AgniACL: tokenIn not allowed");
-        require(checkToken(params.tokenOut), "AgniACL: tokenOut not allowed");
+        require(_checkToken(params.tokenIn), "AgniACL: tokenIn not allowed");
+        require(_checkToken(params.tokenOut), "AgniACL: tokenOut not allowed");
     }
 
     function exactInput(ExactInputParams calldata params) external view virtual {
@@ -77,8 +77,8 @@ contract AgniAuthorizationACL is BaseACL {
         while (true) {
             bool hasMultiplePools = path.hasMultiplePools();
             (address tokenIn, address tokenOut,) = path.decodeFirstPool();
-            require(checkToken(tokenIn), "AgniACL: tokenIn not allowed");
-            require(checkToken(tokenOut), "AgniACL: tokenOut not allowed");
+            require(_checkToken(tokenIn), "AgniACL: tokenIn not allowed");
+            require(_checkToken(tokenOut), "AgniACL: tokenOut not allowed");
             if (hasMultiplePools) {
                 path = path.skipToken();
             } else {
