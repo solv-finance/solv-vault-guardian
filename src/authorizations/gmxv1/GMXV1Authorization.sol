@@ -10,8 +10,8 @@ contract GMXV1Authorization is FunctionAuthorization {
     string public constant NAME = "SolvVaultGuardian_GMXV1Authorization";
     uint256 public constant VERSION = 1;
 
-    address public constant GMX_REWAED_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
-    address public constant GMX_REWAED_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
+    address public constant GMX_REWARD_ROUTER_V2 = 0xB95DB5B167D75e6d04227CfFFA61069348d271F5;
+    address public constant GMX_REWARD_ROUTER = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 
     constructor(address safeAccount_, address caller_)
         FunctionAuthorization(caller_, Governable(caller_).governor())
@@ -21,7 +21,7 @@ contract GMXV1Authorization is FunctionAuthorization {
         glpRewardRouterV2Funcs[1] = "claim()";
         glpRewardRouterV2Funcs[2] = "compound()";
 
-        _addContractFuncs(GMX_REWAED_ROUTER, glpRewardRouterV2Funcs);
+        _addContractFuncs(GMX_REWARD_ROUTER, glpRewardRouterV2Funcs);
 
         string[] memory glpRewardRouterFuncs = new string[](4);
         glpRewardRouterFuncs[0] = "mintAndStakeGlp(address,uint256,uint256,uint256)";
@@ -29,7 +29,7 @@ contract GMXV1Authorization is FunctionAuthorization {
         glpRewardRouterFuncs[2] = "mintAndStakeGlpETH(uint256,uint256)";
         glpRewardRouterFuncs[3] = "unstakeAndRedeemGlpETH(uint256,uint256,address)";
 
-        _addContractFuncs(GMX_REWAED_ROUTER_V2, glpRewardRouterFuncs);
+        _addContractFuncs(GMX_REWARD_ROUTER_V2, glpRewardRouterFuncs);
 
         address[] memory tokens = new address[](10);
         tokens[0] = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //WETH
@@ -44,6 +44,6 @@ contract GMXV1Authorization is FunctionAuthorization {
         tokens[9] = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; //ETH
 
         address acl = address(new GMXV1AuthorizationACL(address(this), safeAccount_, tokens));
-        _setContractACL(GMX_REWAED_ROUTER_V2, acl);
+        _setContractACL(GMX_REWARD_ROUTER_V2, acl);
     }
 }
