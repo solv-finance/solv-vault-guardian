@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
-import {BaseGuard, Enum} from "safe-contracts-1.4.0/base/GuardManager.sol";
+import {BaseGuard, Enum, Guard} from "safe-contracts-1.4.0/base/GuardManager.sol";
 import {BaseAuthorization} from "./common/BaseAuthorization.sol";
 import {SolvVaultGuardianBase} from "./common/SolvVaultGuardianBase.sol";
 
@@ -25,7 +25,8 @@ contract SolvVaultGuardianForSafe14 is BaseGuard, SolvVaultGuardianBase {
         override(BaseAuthorization, BaseGuard)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        return interfaceId == type(Guard).interfaceId // 0xe6d7a83a
+            || interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
     }
 
     function checkTransaction(
