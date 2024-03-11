@@ -31,6 +31,7 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     bool public allowSetGuard;
     bool public allowNativeTokenTransfer;
     mapping(address => bool) public nativeTokenReceiver;
+    bool public allowEnableModule;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
         FunctionAuthorization(address(this), governor_)
@@ -48,6 +49,10 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     function _setGuardAllowed(bool allowed_) internal virtual {
         allowSetGuard = allowed_;
         emit AllowSetGuard(allowed_);
+    }
+
+    function setEnableModule(bool allowed_) external onlyGovernor {
+        allowEnableModule = allowed_;
     }
 
     function setNativeTokenTransferAllowed(bool allowed_) external virtual onlyGovernor {
@@ -105,6 +110,10 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         _addContractFuncsSigWithACL(contract_, acl_, funcSigList_);
     }
 
+    function removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
+        _removeContractFuncsSig(contract_, funcSigList_);
+    }
+
     function setContractACL(address contract_, address acl_) external virtual onlyGovernor {
         _setContractACL(contract_, acl_);
     }
@@ -148,25 +157,32 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         }
     }
 
-    function _checkMultiSendTransactions(address /* to */, uint256 /* value */, bytes calldata data, address msgSender)
-        internal 
-        virtual 
+    function _checkMultiSendTransactions(address, /* to */ uint256, /* value */ bytes calldata data, address msgSender)
+        internal
+        virtual
     {
         uint256 multiSendDataLength = uint256(bytes32(data[4 + 32:4 + 32 + 32]));
         bytes calldata multiSendData = data[4 + 32 + 32:4 + 32 + 32 + multiSendDataLength];
         uint256 startIndex = 0;
         while (startIndex < multiSendData.length) {
-            (address innerTo, uint256 innerValue, bytes calldata innerData, uint256 endIndex) = _unpackMultiSend(multiSendData, startIndex);
+            (address innerTo, uint256 innerValue, bytes calldata innerData, uint256 endIndex) =
+                _unpackMultiSend(multiSendData, startIndex);
             _checkSafeTransaction(innerTo, innerValue, innerData, msgSender);
             startIndex = endIndex;
         }
     }
 
-    function _checkSingleTransaction(address to, uint256 value, bytes calldata data, address msgSender) 
-        internal 
-        virtual 
+    function _checkSingleTransaction(address to, uint256 value, bytes calldata data, address msgSender)
+        internal
+        virtual
     {
         Type.TxData memory txData = Type.TxData({from: msgSender, to: to, value: value, data: data});
+
+        //check safe account enableModule
+        if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("enableModule(address)"))) {
+            require(allowEnableModule, "SolvVaultGuardian: enableModule disabled");
+            return;
+        }
 
         // check safe account setGuard
         if (to == safeAccount && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
@@ -240,5 +256,4 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
 
         endIndex = startIndex + offset + dataLength;
     }
-
 }

@@ -8,15 +8,11 @@ import {BaseAuthorization} from "./common/BaseAuthorization.sol";
 import {SolvVaultGuardianBase} from "./common/SolvVaultGuardianBase.sol";
 
 contract SolvVaultGuardianForSafe14 is BaseGuard, SolvVaultGuardianBase {
-    bool public allowEnableModule;
+    event GuardianAllowedTransaction(address indexed to, uint256 value, bytes data, address indexed msgSender);
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
         SolvVaultGuardianBase(safeAccount_, safeMultiSend_, governor_, allowSetGuard_)
     {}
-
-    function enableModule(bool enable) external onlyGovernor {
-        allowEnableModule = enable;
-    }
 
     function supportsInterface(bytes4 interfaceId)
         public
@@ -42,12 +38,8 @@ contract SolvVaultGuardianForSafe14 is BaseGuard, SolvVaultGuardianBase {
         bytes memory, /*signatures*/
         address msgSender
     ) external virtual override {
-        //check safe account enableModule
-        if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("enableModule(address)"))) {
-            require(allowEnableModule, "SolvVaultGuardian: enableModule disabled");
-            return;
-        }
         _checkSafeTransaction(to, value, data, msgSender);
+        emit GuardianAllowedTransaction(to, value, data, msgSender);
     }
 
     function checkAfterExecution(bytes32 txHash, bool success) external virtual override {}
