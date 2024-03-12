@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
-import {BaseACL} from "../common/BaseACL.sol";
+import {BaseACL} from "../../common/BaseACL.sol";
 
 interface IERC20 {
     function decimals() external view returns (uint8);

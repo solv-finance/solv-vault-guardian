@@ -5,13 +5,11 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import "../common/SolvVaultGuardianBaseTest.sol";
-import "../../src/external/IERC3525.sol";
-import "../../src/external/IOpenFundMarket.sol";
+import "../common/AuthorizationTestBase.sol";
 import "../../src/authorizations/solv-master-fund/SolvMasterFundAuthorization.sol";
 import "../../src/authorizations/solv-master-fund/SolvMasterFundAuthorizationACL.sol";
 
-contract SolvMasterFundAuthorizationTest is SolvVaultGuardianBaseTest {
+contract SolvMasterFundAuthorizationTest is AuthorizationTestBase {
 
     bytes32 internal constant MASTER_FUND_POOL_ID = 0xdd97d94073acb41e4903b3c5711feae0bd3d7325bb4ee234417d1f32138e195e; 
     bytes32 internal constant ALLOWED_POOL_ID_1 = 0x0ef01fb59f931e3a3629255b04ce29f6cd428f674944789288a1264a79c7c931;
@@ -26,125 +24,122 @@ contract SolvMasterFundAuthorizationTest is SolvVaultGuardianBaseTest {
     address internal constant DISALLOWED_SFT = 0x66E6B4C8aa1b8Ca548Cc4EBcd6f3a8c6f4F3d04d;
 
     SolvMasterFundAuthorization internal _masterFundAuthorization;
+    SolvMasterFundAuthorizationACL internal _masterFundAuthorizationACL;
 
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
-        super._setSafeGuard();
 
         bytes32[] memory poolIdWhitelist = new bytes32[](2);
         poolIdWhitelist[0] = ALLOWED_POOL_ID_1;
         poolIdWhitelist[1] = ALLOWED_POOL_ID_2;
-        _masterFundAuthorization = new SolvMasterFundAuthorization(address(_guardian), safeAccount, OPEN_END_FUND_MARKET, poolIdWhitelist);
+        _masterFundAuthorization = new SolvMasterFundAuthorization(
+            address(_guardian), safeAccount, OPEN_END_FUND_MARKET, poolIdWhitelist
+        );
+        _authorization = _masterFundAuthorization;
 
-        _addAuthorizations();
+        _masterFundAuthorizationACL = new SolvMasterFundAuthorizationACL(
+            address(_guardian), safeAccount, governor, OPEN_END_FUND_MARKET, new bytes32[](0)
+        );
     }
 
     function test_Subscribe() public virtual {
-        vm.startPrank(ownerOfSafe);
         bytes memory txData = abi.encodeWithSignature("subscribe(bytes32,uint256,uint256,uint64)", ALLOWED_POOL_ID_1, 1 ether, 0, uint64(block.timestamp + 300));
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(OPEN_END_FUND_MARKET, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_SubscribeWithGivenShareId() public virtual {
-        vm.startPrank(ownerOfSafe);
         uint256 mockedHoldingSftId = 100;
         _mock_getPoolInfo(ALLOWED_POOL_ID_1, ALLOWED_SHARE_SLOT_1);
         _mock_getSftOwner(OPEN_END_FUND_SHARE, mockedHoldingSftId, safeAccount);
 
         bytes memory txData = abi.encodeWithSignature("subscribe(bytes32,uint256,uint256,uint64)", ALLOWED_POOL_ID_1, 1 ether, mockedHoldingSftId, uint64(block.timestamp + 300));
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(OPEN_END_FUND_MARKET, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_Redeem() public virtual {
-        vm.startPrank(ownerOfSafe);
         uint256 mockedShareId = 100;
         bytes memory txData = abi.encodeWithSignature("requestRedeem(bytes32,uint256,uint256,uint256)", ALLOWED_POOL_ID_1, mockedShareId, 0, 1 ether);
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(OPEN_END_FUND_MARKET, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_RevokeRedeem() public virtual {
-        vm.startPrank(ownerOfSafe);
         uint256 mockedRedemptionId = 100;
         bytes memory txData = abi.encodeWithSignature("revokeRedeem(bytes32,uint256)", ALLOWED_POOL_ID_1, mockedRedemptionId);
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
-    }
-
-    function test_RevertWhenApproveUnauthorizedErc20() public virtual {
-        vm.startPrank(ownerOfSafe);
-        _revertMessage = "SolvVaultGuardian: unauthorized contract";
-        _checkFromGuardian(USDC, 0, abi.encodeWithSignature("approve(address,uint256)", OPEN_END_FUND_MARKET, 1 ether), Enum.Operation.Call);
-        vm.stopPrank();
-    }
-
-    function test_RevertWhenApproveErc20ToUnauthorizedSpender() public virtual {
-        vm.startPrank(ownerOfSafe);
-        _revertMessage = "SolvVaultGuardian: unauthorized contract";
-        _checkFromGuardian(USDT, 0, abi.encodeWithSignature("approve(address,uint256)", permissionlessAccount, 1 ether), Enum.Operation.Call);
-        vm.stopPrank();
-    }
-
-    function test_RevertWhenApproveUnauthorizedErc3525() public virtual {
-        vm.startPrank(ownerOfSafe);
-        _revertMessage = "SolvVaultGuardian: unauthorized contract";
-        uint256 mockedHoldingSftId = 100;
-        _checkFromGuardian(DISALLOWED_SFT, 0, abi.encodeWithSignature("approve(address,uint256)", OPEN_END_FUND_MARKET, mockedHoldingSftId), Enum.Operation.Call);
-        _checkFromGuardian(DISALLOWED_SFT, 0, abi.encodeWithSignature("approve(uint256,address,uint256)", mockedHoldingSftId, OPEN_END_FUND_MARKET, 1 ether), Enum.Operation.Call);
-        vm.stopPrank();
-    }
-
-    function test_RevertWhenApproveErc3525ToUnauthorizedSpender() public virtual {
-        vm.startPrank(ownerOfSafe);
-        _revertMessage = "SolvVaultGuardian: unauthorized contract";
-        uint256 mockedHoldingSftId = 100;
-        _checkFromGuardian(OPEN_END_FUND_SHARE, 0, abi.encodeWithSignature("approve(address,uint256)", permissionlessAccount, mockedHoldingSftId), Enum.Operation.Call);
-        _checkFromGuardian(OPEN_END_FUND_SHARE, 0, abi.encodeWithSignature("approve(uint256,address,uint256)", mockedHoldingSftId, permissionlessAccount, 1 ether), Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(OPEN_END_FUND_MARKET, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_RevertWhenSubscribeToUnallowedPool() public virtual {
-        vm.startPrank(ownerOfSafe);
-        _revertMessage = "MasterFundACL: pool not allowed";
         bytes memory txData = abi.encodeWithSignature("subscribe(bytes32,uint256,uint256,uint64)", DISALLOWED_POOL_ID, 1 ether, 0, uint64(block.timestamp + 300));
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(
+            OPEN_END_FUND_MARKET, 0, txData, 
+            Type.CheckResult(false, "MasterFundACL: pool not allowed")
+        );
     }
 
     function test_RevertWhenSubscribeToUnheldShareId() public virtual {
-        vm.startPrank(ownerOfSafe);
         uint256 mockedSftId = 100;
         _mock_getPoolInfo(ALLOWED_POOL_ID_1, ALLOWED_SHARE_SLOT_1);
         _mock_getSftOwner(OPEN_END_FUND_SHARE, mockedSftId, permissionlessAccount);
-        _revertMessage = "MasterFundACL: invalid share receiver";
         bytes memory txData = abi.encodeWithSignature("subscribe(bytes32,uint256,uint256,uint64)", ALLOWED_POOL_ID_1, 1 ether, mockedSftId, uint64(block.timestamp + 300));
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
-        vm.stopPrank();
+        _checkFromAuthorization(
+            OPEN_END_FUND_MARKET, 0, txData, 
+            Type.CheckResult(false, "MasterFundACL: invalid share receiver")
+        );
     }
 
     function test_RevertWhenRedeemToUnheldRedemptionId() public virtual {
-        vm.startPrank(ownerOfSafe);
         uint256 mockedShareId = 100;
         uint256 mockedRedemptionId = 200;
         _mock_getPoolInfo(ALLOWED_POOL_ID_1, ALLOWED_SHARE_SLOT_1);
         _mock_getSftOwner(OPEN_END_FUND_REDEMPTION, mockedRedemptionId, permissionlessAccount);
 
-        _revertMessage = "MasterFundACL: invalid redemption receiver";
         bytes memory txData = abi.encodeWithSignature("requestRedeem(bytes32,uint256,uint256,uint256)", ALLOWED_POOL_ID_1, mockedShareId, mockedRedemptionId, 1 ether);
-        _checkFromGuardian(OPEN_END_FUND_MARKET, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(
+            OPEN_END_FUND_MARKET, 0, txData, 
+            Type.CheckResult(false, "MasterFundACL: invalid redemption receiver")
+        );
+    }
+
+    function test_AddPoolIdWhitelist() public virtual {
+        vm.startPrank(governor);
+        bytes32[] memory addPoolIds = new bytes32[](2);
+        addPoolIds[0] = ALLOWED_POOL_ID_1;
+        addPoolIds[1] = ALLOWED_POOL_ID_2;
+        _masterFundAuthorizationACL.addPoolIdWhitelist(addPoolIds);
         vm.stopPrank();
+
+        bytes32[] memory actualPoolIds = _masterFundAuthorizationACL.getPoolIdWhitelist();
+        assertEq(actualPoolIds.length, 2);
+        assertEq(actualPoolIds[0], ALLOWED_POOL_ID_1);
+        assertEq(actualPoolIds[1], ALLOWED_POOL_ID_2);
+
+        assertTrue(_masterFundAuthorizationACL.checkPoolId(ALLOWED_POOL_ID_1));
+        assertTrue(_masterFundAuthorizationACL.checkPoolId(ALLOWED_POOL_ID_2));
+        assertFalse(_masterFundAuthorizationACL.checkPoolId(DISALLOWED_POOL_ID));
+    }
+
+    function test_RemovePoolIdWhitelist() public virtual {
+        vm.startPrank(governor);
+        bytes32[] memory addPoolIds = new bytes32[](2);
+        addPoolIds[0] = ALLOWED_POOL_ID_1;
+        addPoolIds[1] = ALLOWED_POOL_ID_2;
+        _masterFundAuthorizationACL.addPoolIdWhitelist(addPoolIds);
+
+        bytes32[] memory removePoolIds = new bytes32[](1);
+        removePoolIds[0] = ALLOWED_POOL_ID_1;
+        _masterFundAuthorizationACL.removePoolIdWhitelist(removePoolIds);
+        vm.stopPrank();
+
+        bytes32[] memory actualPoolIds = _masterFundAuthorizationACL.getPoolIdWhitelist();
+        assertEq(actualPoolIds.length, 1);
+        assertEq(actualPoolIds[0], ALLOWED_POOL_ID_2);
+
+        assertTrue(_masterFundAuthorizationACL.checkPoolId(ALLOWED_POOL_ID_2));
+        assertFalse(_masterFundAuthorizationACL.checkPoolId(ALLOWED_POOL_ID_1));
+        assertFalse(_masterFundAuthorizationACL.checkPoolId(DISALLOWED_POOL_ID));
     }
 
     /** Internal Functions */
-
-    function _addAuthorizations() internal virtual {
-        vm.startPrank(governor);
-        _guardian.setAuthorization(OPEN_END_FUND_MARKET, address(_masterFundAuthorization));
-        vm.stopPrank();
-    }
 
     function _mock_getPoolInfo(bytes32 poolId, uint256 shareSlot) internal {
             IOpenFundMarket.PoolInfo memory mockPoolInfo = IOpenFundMarket.PoolInfo(

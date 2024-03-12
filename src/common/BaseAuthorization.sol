@@ -11,9 +11,7 @@ abstract contract BaseAuthorization is IBaseAuthorization, Governable, IERC165 {
     address public caller;
 
     modifier onlyCaller() {
-        if (msg.sender != caller) {
-            revert("BaseAuthorization: onlySelf");
-        }
+        require(msg.sender == caller, "BaseAuthorization: only caller");
         _;
     }
 

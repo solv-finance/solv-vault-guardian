@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
+import {FunctionAuthorization} from "../../common/FunctionAuthorization.sol";
 import {SolvOpenEndFundAuthorizationACL} from "./SolvOpenEndFundAuthorizationACL.sol";
-import {Governable} from "../utils/Governable.sol";
+import {Governable} from "../../utils/Governable.sol";
 
 contract SolvOpenEndFundAuthorization is FunctionAuthorization {
     string public constant NAME = "SolvVaultGuardian_SolvOpenEndFundAuthorization";

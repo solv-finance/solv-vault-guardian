@@ -118,9 +118,6 @@ contract ERC3525Authorization is FunctionAuthorization {
                     result.success = false;
                     result.message = "ERC3525Authorization: ERC3525 value spender not allowed";
                 }
-            } else {
-                result.success = false;
-                result.message = "ERC3525Authorization: not allowed selector";
             }
         }
     }

@@ -18,7 +18,7 @@ abstract contract Governable {
     }
 
 	modifier onlyPendingGovernor() {
-		require(pendingGovernor == msg.sender, "Governable: only governor");
+		require(pendingGovernor == msg.sender, "Governable: only pending governor");
 		_;
 	}
 

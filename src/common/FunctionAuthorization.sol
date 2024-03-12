@@ -26,7 +26,10 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
 
     constructor(address caller_, address governor_) BaseAuthorization(caller_, governor_) {}
 
-    function _addContractFuncsWithACL(address contract_, address acl_, string[] memory funcList_) internal virtual {
+    function _addContractFuncsWithACL(address contract_, address acl_, string[] memory funcList_) 
+        internal 
+        virtual 
+    {
         _addContractFuncs(contract_, funcList_);
         if (acl_ != address(0)) {
             _setContractACL(contract_, acl_);
@@ -135,28 +138,34 @@ abstract contract FunctionAuthorization is BaseAuthorization, Multicall {
         override
         returns (Type.CheckResult memory result_)
     {
-        bytes4 selector = _getSelector(txData_.data);
-        if (_isAllowedSelector(txData_.to, selector)) {
-            result_.success = true;
-            // further check acl if contract is authorized
-            address acl = _contractACL[txData_.to];
-            if (acl != address(0)) {
-                try BaseACL(acl).preCheck(txData_.from, txData_.to, txData_.data, txData_.value) returns (
-                    Type.CheckResult memory aclCheckResult
-                ) {
-                    return aclCheckResult;
-                } catch Error(string memory reason) {
-                    result_.success = false;
-                    result_.message = reason;
-                } catch (bytes memory reason) {
-                    result_.success = false;
-                    result_.message = string(reason);
+        if (_contracts.contains(txData_.to)) {
+            bytes4 selector = _getSelector(txData_.data);
+            if (_isAllowedSelector(txData_.to, selector)) {
+                result_.success = true;
+                // further check acl if contract is authorized
+                address acl = _contractACL[txData_.to];
+                if (acl != address(0)) {
+                    try BaseACL(acl).preCheck(txData_.from, txData_.to, txData_.data, txData_.value) returns (
+                        Type.CheckResult memory aclCheckResult
+                    ) {
+                        return aclCheckResult;
+                    } catch Error(string memory reason) {
+                        result_.success = false;
+                        result_.message = reason;
+                    } catch (bytes memory reason) {
+                        result_.success = false;
+                        result_.message = string(reason);
+                    }
                 }
+            } else {
+                result_.success = false;
+                result_.message = "FunctionAuthorization: not allowed function";
             }
         } else {
             result_.success = false;
-            result_.message = "FunctionAuthorization: not allowed function";
+            result_.message = "FunctionAuthorization: not allowed contract";
         }
+        
     }
 
     function _isAllowedSelector(address target_, bytes4 selector_) internal view virtual returns (bool) {

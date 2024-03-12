@@ -5,10 +5,10 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import "../common/SolvVaultGuardianBaseTest.sol";
+import "../intergration/SolvVaultGuardianTestBase.sol";
 import "../../src/authorizations/CoboArgusAdminAuthorization.sol";
 
-contract CoboArgusAdminAuthorizationTest is SolvVaultGuardianBaseTest {
+// contract CoboArgusAdminAuthorizationTest is SolvVaultGuardianTestBase {
 
     // address internal constant ARGUS_ACCOUNT_HELPER = 0x58D3a5586A8083A207A01F21B971157921744807;
     // // address internal constant ARGUS_FLAT_ROLE_MANAGER = 0x80346Efdc8957843A472e5fdaD12Ea4fD340A845;
@@ -149,4 +149,4 @@ contract CoboArgusAdminAuthorizationTest is SolvVaultGuardianBaseTest {
     //     (instance) = abi.decode(returnData, (address));
     // }
 
-}
+// }

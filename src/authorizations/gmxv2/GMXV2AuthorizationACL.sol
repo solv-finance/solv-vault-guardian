@@ -40,6 +40,11 @@ contract GMXV2AuthorizationACL is BaseACL {
     string public constant NAME = "SolvVaultGuard_GMXV2AuthorizationACL";
     uint256 public constant VERSION = 1;
 
+    bytes4 internal constant FUNC_SIG_SEND_WNT = bytes4(keccak256(abi.encodePacked("sendWnt(address,uint256)")));
+    bytes4 internal constant FUNC_SIG_SEND_TOKENS = bytes4(keccak256(abi.encodePacked("sendTokens(address,address,uint256)")));
+    bytes4 internal constant FUNC_SIG_CREATE_DEPOSIT = bytes4(keccak256(abi.encodePacked("createDeposit((address,address,address,address,address,address,address[],address[],uint256,bool,uint256,uint256))")));
+    bytes4 internal constant FUNC_SIG_CREATE_WITHDRAWAL = bytes4(keccak256(abi.encodePacked("createWithdrawal((address,address,address,address,address[],address[],uint256,uint256,bool,uint256,uint256))")));
+
     struct CollateralPair {
         address longCollateral;
         address shortCollateral;
@@ -91,19 +96,19 @@ contract GMXV2AuthorizationACL is BaseACL {
         uint256 value = _txn().value;
         bytes4 operation = bytes4(data[data.length - 1]);
 
-        if (operation == this.createDeposit.selector) {
+        if (operation == FUNC_SIG_CREATE_DEPOSIT) {
             (CreateDepositParams memory depositParams) = abi.decode(data[data.length - 1][4:], (CreateDepositParams));
-            createDeposit(depositParams);
+            _createDeposit(depositParams);
 
             // for deposit operations, the first call should be `sendWnt` and the receiver should be GmxDepositVault
-            require(bytes4(data[0]) == this.sendWnt.selector, "sendWnt error");
+            require(bytes4(data[0]) == FUNC_SIG_SEND_WNT, "sendWnt error");
             (address wntReceiver, uint256 amount) = abi.decode(data[0][4:], (address, uint256));
             require(wntReceiver == depositVault, "invalid wnt receiver");
             require(amount == value, "invalid wnt amount");
 
             // for deposit operations with non-ETH tokens, the second call should be `sendTokens`
             if (data.length == 3) {
-                require(bytes4(data[1]) == this.sendTokens.selector, "sendTokens error");
+                require(bytes4(data[1]) == FUNC_SIG_SEND_TOKENS, "sendTokens error");
                 (address token, address tokenReceiver,) = abi.decode(data[1][4:], (address, address, uint256));
                 CollateralPair memory collateralPair = authorizedPools[depositParams.market];
                 require(
@@ -112,19 +117,19 @@ contract GMXV2AuthorizationACL is BaseACL {
                 );
                 require(tokenReceiver == depositVault, "invalid token receiver");
             }
-        } else if (operation == this.createWithdrawal.selector) {
+        } else if (operation == FUNC_SIG_CREATE_WITHDRAWAL) {
             (CreateWithdrawalParams memory withdrawalParams) =
                 abi.decode(data[data.length - 1][4:], (CreateWithdrawalParams));
-            createWithdrawal(withdrawalParams);
+            _createWithdrawal(withdrawalParams);
 
             // for withdrawal operations, the first call should be `sendWnt` and the receiver should be GmxWithdrawalVault
-            require(bytes4(data[0]) == this.sendWnt.selector, "sendWnt error");
+            require(bytes4(data[0]) == FUNC_SIG_SEND_WNT, "sendWnt error");
             (address wntReceiver, uint256 amount) = abi.decode(data[0][4:], (address, uint256));
             require(wntReceiver == withdrawalVault, "invalid wnt receiver");
             require(amount == value, "invalid wnt amount");
 
             // for withdrawal operations, the second call should be `sendTokens` and the receiver should be GmxWithdrawalVault
-            require(bytes4(data[1]) == this.sendTokens.selector, "sendTokens error");
+            require(bytes4(data[1]) == FUNC_SIG_SEND_TOKENS, "sendTokens error");
             (address token, address tokenReceiver,) = abi.decode(data[1][4:], (address, address, uint256));
             require(token == withdrawalParams.market, "GM token not matches");
             require(tokenReceiver == withdrawalVault, "invalid token receiver");
@@ -133,21 +138,13 @@ contract GMXV2AuthorizationACL is BaseACL {
         }
     }
 
-    function sendWnt(address, /* receiver */ uint256 /* amount */ ) external pure {
-        revert("sendWnt not allowed");
-    }
-
-    function sendTokens(address, /* token */ address, /* receiver */ uint256 /* amount */ ) external pure {
-        revert("sendTokens not allowed");
-    }
-
-    function createDeposit(CreateDepositParams memory depositParams) public view {
+    function _createDeposit(CreateDepositParams memory depositParams) internal view {
         require(isPoolAuthorized(depositParams.market), "pool not authorized");
         require(depositParams.receiver == safeAccount, "invalid deposit receiver");
         require(depositParams.callbackContract == address(0), "deposit callback not allowed");
     }
 
-    function createWithdrawal(CreateWithdrawalParams memory withdrawalParams) public view {
+    function _createWithdrawal(CreateWithdrawalParams memory withdrawalParams) internal view {
         require(isPoolAuthorized(withdrawalParams.market), "pool not authorized");
         require(withdrawalParams.receiver == safeAccount, "invalid withdrawal receiver");
         require(withdrawalParams.callbackContract == address(0), "withdrawal callback not allowed");

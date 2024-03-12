@@ -5,38 +5,27 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import "../common/SolvVaultGuardianBaseTest.sol";
+import "../common/AuthorizationTestBase.sol";
 import "../../src/authorizations/agni/AgniAuthorization.sol";
 import "../../src/authorizations/agni/AgniAuthorizationACL.sol";
 
-contract AgniAuthorizationTest is SolvVaultGuardianBaseTest {
+contract AgniAuthorizationTest is AuthorizationTestBase {
 
     address internal constant AGNI_SWAP_ROUTER = 0x319B69888b0d11cEC22caA5034e25FfFBDc88421;
 
-    AgniAuthorization internal _agniAuthorization;
-
     function setUp() public virtual override {
         super.setUp();
-        _guardian = new SolvVaultGuardianForSafe13(safeAccount, SAFE_MULTI_SEND_CONTRACT, governor, true);
-        super._setSafeGuard();
 
         address[] memory swapTokenWhitelist = new address[](3);
         swapTokenWhitelist[0] = WETH;
         swapTokenWhitelist[1] = WBTC;
         swapTokenWhitelist[2] = USDT;
-        _agniAuthorization = new AgniAuthorization(address(_guardian), safeAccount, AGNI_SWAP_ROUTER, swapTokenWhitelist);
-        _addAgniAuthorization();
+        _authorization = new AgniAuthorization(address(_guardian), safeAccount, AGNI_SWAP_ROUTER, swapTokenWhitelist);
     }
 
     function test_AuthorizationInitialStatus() public virtual {
-        address acl = _agniAuthorization.getACLByContract(AGNI_SWAP_ROUTER);
+        address acl = _authorization.getACLByContract(AGNI_SWAP_ROUTER);
         assertNotEq(acl, address(0));
-    }
-
-    function test_GuardianInitialStatus() public virtual {
-        address[] memory toAddresses = _guardian.getAllToAddresses();
-        assertEq(toAddresses.length, 1);
-        assertEq(toAddresses[0], AGNI_SWAP_ROUTER);
     }
 
     function test_ExactInputSingleParams() public virtual {
@@ -44,7 +33,7 @@ contract AgniAuthorizationTest is SolvVaultGuardianBaseTest {
             "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))", 
             ExactInputSingleParams(WETH, USDT, 0, safeAccount, block.timestamp + 300, 1 ether, 1 ether, 1 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_ExactInput() public virtual {
@@ -53,99 +42,118 @@ contract AgniAuthorizationTest is SolvVaultGuardianBaseTest {
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, safeAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(true, ""));
     }
 
     function test_RevertWhenExactInputSingleParamsWithEthValue() public virtual {
-        _revertMessage = "Value not zero";
         bytes memory txData = abi.encodeWithSignature(
             "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))", 
             ExactInputSingleParams(WETH, USDT, 0, safeAccount, block.timestamp + 300, 1 ether, 1 ether, 1 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 1 gwei, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 1 gwei, txData, Type.CheckResult(false, "Value not zero"));
     }
 
     function test_RevertWhenExactInputSingleParamsWithInvalidRecipient() public virtual {
-        _revertMessage = "AgniACL: recipient not allowed";
         bytes memory txData = abi.encodeWithSignature(
             "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))", 
             ExactInputSingleParams(WETH, USDT, 0, permissionlessAccount, block.timestamp + 300, 1 ether, 1 ether, 1 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: recipient not allowed"));
     }
 
     function test_RevertWhenExactInputSingleParamsWithInvalidTokenIn() public virtual {
-        _revertMessage = "AgniACL: tokenIn not allowed";
         bytes memory txData = abi.encodeWithSignature(
             "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))", 
             ExactInputSingleParams(USDC, WETH, 0, safeAccount, block.timestamp + 300, 1 ether, 1 ether, 1 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: tokenIn not allowed"));
     }
 
     function test_RevertWhenExactInputSingleParamsWithInvalidTokenOut() public virtual {
-        _revertMessage = "AgniACL: tokenOut not allowed";
         bytes memory txData = abi.encodeWithSignature(
             "exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160))", 
             ExactInputSingleParams(WETH, USDC, 0, safeAccount, block.timestamp + 300, 1 ether, 1 ether, 1 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: tokenOut not allowed"));
     }
 
     function test_RevertWhenExactInputWithEthValue() public virtual {
-        _revertMessage = "Value not zero";
         bytes memory path = abi.encodePacked(WETH, uint24(500), USDT, uint24(500), WBTC);
         bytes memory txData = abi.encodeWithSignature(
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, safeAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 1 gwei, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 1 gwei, txData, Type.CheckResult(false, "Value not zero"));
     }
 
     function test_RevertWhenExactInputWithInvalidRecipient() public virtual {
-        _revertMessage = "AgniACL: recipient not allowed";
         bytes memory path = abi.encodePacked(WETH, uint24(500), USDT, uint24(500), WBTC);
         bytes memory txData = abi.encodeWithSignature(
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, permissionlessAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: recipient not allowed"));
     }
 
     function test_RevertWhenExactInputWithInvalidTokenIn() public virtual {
-        _revertMessage = "AgniACL: tokenIn not allowed";
         bytes memory path = abi.encodePacked(USDC, uint24(500), USDT, uint24(500), WBTC);
         bytes memory txData = abi.encodeWithSignature(
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, safeAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: tokenIn not allowed"));
     }
 
     function test_RevertWhenExactInputWithInvalidTokenOut() public virtual {
-        _revertMessage = "AgniACL: tokenOut not allowed";
         bytes memory path = abi.encodePacked(WETH, uint24(500), USDT, uint24(500), USDC);
         bytes memory txData = abi.encodeWithSignature(
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, safeAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: tokenOut not allowed"));
     }
 
     function test_RevertWhenExactInputWithInvalidTokenInBetween() public virtual {
-        _revertMessage = "AgniACL: tokenOut not allowed";
         bytes memory path = abi.encodePacked(WETH, uint24(500), USDC, uint24(500), WBTC);
         bytes memory txData = abi.encodeWithSignature(
             "exactInput((bytes,address,uint256,uint256,uint256))", 
             ExactInputParams(path, safeAccount, block.timestamp + 300, 1 ether, 0.05 ether)
         );
-        _checkFromGuardian(AGNI_SWAP_ROUTER, 0, txData, Enum.Operation.Call);
+        _checkFromAuthorization(AGNI_SWAP_ROUTER, 0, txData, Type.CheckResult(false, "AgniACL: tokenOut not allowed"));
     }
 
-    function _addAgniAuthorization() internal virtual {
-        vm.startPrank(governor);
-        _guardian.setAuthorization(AGNI_SWAP_ROUTER, address(_agniAuthorization));
-        vm.stopPrank();
+    function test_AddTokenWhitelist() public virtual {
+        AgniAuthorizationACLMock acl = new AgniAuthorizationACLMock(
+            address(_guardian), safeAccount, AGNI_SWAP_ROUTER, new address[](0)
+        );
+        acl.addTokenWhitelist(WBTC);
+        assertTrue(acl.checkToken(WBTC));
+        assertFalse(acl.checkToken(WETH));
     }
 
+    function test_RevertWhenAddInvalidTokenWhitelist() public virtual {
+        AgniAuthorizationACLMock acl = new AgniAuthorizationACLMock(
+            address(_guardian), safeAccount, AGNI_SWAP_ROUTER, new address[](0)
+        );
+        vm.expectRevert("AgniACL: token cannot be the zero address");
+        acl.addTokenWhitelist(address(0));
+    }
+}
+
+contract AgniAuthorizationACLMock is AgniAuthorizationACL {
+    constructor(
+        address caller_,
+        address safeAccount_,
+        address agniSwapRouter_,
+        address[] memory tokenWhitelist_
+    ) 
+        AgniAuthorizationACL(caller_, safeAccount_, agniSwapRouter_, tokenWhitelist_) {}
+
+    function addTokenWhitelist(address token_) external virtual {
+        _addTokenWhitelist(token_);
+    }
+
+    function checkToken(address token_) external virtual returns (bool) {
+        return _checkToken(token_);
+    }
 }

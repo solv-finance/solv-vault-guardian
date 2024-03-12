@@ -191,9 +191,6 @@ contract ERC20Authorization is FunctionAuthorization {
                     result.success = false;
                     result.message = "ERC20Authorization: ERC20 spender not allowed";
                 }
-            } else {
-                result.success = false;
-                result.message = "ERC20Authorization: not allowed selector";
             }
         }
     }
