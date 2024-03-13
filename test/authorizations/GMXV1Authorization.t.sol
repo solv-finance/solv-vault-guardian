@@ -24,7 +24,12 @@ contract GMXV1AuthorizationTest is AuthorizationTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        _gmxV1Authorization = new GMXV1Authorization(safeAccount, address(_guardian));
+        address[] memory allowTokens = new address[](2);
+        allowTokens[0] = ETH;
+        allowTokens[1] = WETH;
+        _gmxV1Authorization = new GMXV1Authorization(
+            address(_guardian), safeAccount, GMX_REWARD_ROUTER, GMX_REWARD_ROUTER_V2, allowTokens
+        );
         _authorization = _gmxV1Authorization;
     }
 

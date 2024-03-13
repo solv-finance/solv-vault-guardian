@@ -24,9 +24,19 @@ contract GMXV2AuthorizationTest is AuthorizationTestBase {
 
     function setUp() public virtual override {
         super.setUp();
+        
+        address[] memory gmTokens = new address[](2);
+        gmTokens[0] = GMBTC;
+        gmTokens[1] = GMETH;
+
+        GMXV2AuthorizationACL.CollateralPair[] memory gmPairs = new GMXV2AuthorizationACL.CollateralPair[](2);
+        gmPairs[0] = GMXV2AuthorizationACL.CollateralPair(WBTC, USDC);
+        gmPairs[1] = GMXV2AuthorizationACL.CollateralPair(WETH, USDC);
 
         _gmxV2Authorization = new GMXV2Authorization(
-            address(_guardian), safeAccount, GMX_V2_EXCHANGE_ROUTER, GMX_V2_DEPOSIT_VAULT, GMX_V2_WITHDRAWAL_VAULT
+            address(_guardian), safeAccount, 
+            GMX_V2_EXCHANGE_ROUTER, GMX_V2_DEPOSIT_VAULT, GMX_V2_WITHDRAWAL_VAULT,
+            gmTokens, gmPairs
         );
         _authorization = _gmxV2Authorization;
     }
@@ -36,8 +46,8 @@ contract GMXV2AuthorizationTest is AuthorizationTestBase {
         assertNotEq(acl, address(0));
         assertTrue(GMXV2AuthorizationACL(acl).isPoolAuthorized(GMBTC));
         assertTrue(GMXV2AuthorizationACL(acl).isPoolAuthorized(GMETH));
-        assertTrue(GMXV2AuthorizationACL(acl).isPoolAuthorized(GMARB));
-        assertFalse(GMXV2AuthorizationACL(acl).isPoolAuthorized(GMSOL));
+        assertFalse(GMXV2AuthorizationACL(acl).isPoolAuthorized(GMARB));
+        assertFalse(GMXV2AuthorizationACL(acl).isPoolAuthorized(WBTC));
         assertFalse(GMXV2AuthorizationACL(acl).isPoolAuthorized(USDC));
     }
 

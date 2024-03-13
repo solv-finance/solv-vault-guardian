@@ -142,7 +142,7 @@ contract SolvMasterFundAuthorizationTest is AuthorizationTestBase {
     /** Internal Functions */
 
     function _mock_getPoolInfo(bytes32 poolId, uint256 shareSlot) internal {
-            IOpenFundMarket.PoolInfo memory mockPoolInfo = IOpenFundMarket.PoolInfo(
+        IOpenFundMarket.PoolInfo memory mockPoolInfo = IOpenFundMarket.PoolInfo(
             IOpenFundMarket.PoolSFTInfo(OPEN_END_FUND_SHARE, OPEN_END_FUND_REDEMPTION, shareSlot, 12345678),
             IOpenFundMarket.PoolFeeInfo(0, address(0), 0),
             IOpenFundMarket.ManagerInfo(makeAddr("POOL_MANAGER"), makeAddr("SUBSCRIBE_NAV_MANAGER"), makeAddr("REDEEM_NAV_MANAGER")),

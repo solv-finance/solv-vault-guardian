@@ -4,35 +4,33 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
-import "../../src/SolvVaultGuardianForSafe13.sol";
-import {MultiSend} from "safe-contracts-1.3.0/libraries/MultiSend.sol";
-import {GnosisSafeL2} from "safe-contracts-1.3.0/GnosisSafeL2.sol";
-import {GnosisSafeProxy} from "safe-contracts-1.3.0/proxies/GnosisSafeProxy.sol";
-import {GnosisSafeProxyFactory} from "safe-contracts-1.3.0/proxies/GnosisSafeProxyFactory.sol";
 
 import "./SolvVaultGuardianTestCommonCase.sol";
+import "../../src/SolvVaultGuardianForSafe14.sol";
+import {MultiSend} from "safe-contracts-1.4.0/libraries/MultiSend.sol";
+import {SafeL2} from "safe-contracts-1.4.0/SafeL2.sol";
+import {SafeProxy} from "safe-contracts-1.4.0/proxies/SafeProxy.sol";
+import {SafeProxyFactory} from "safe-contracts-1.4.0/proxies/SafeProxyFactory.sol";
 
-contract SolvVaultGuardianForSafe13Test is SolvVaultGuardianTestCommonCase {
+contract SolvVaultGuardianForSafe14Test is SolvVaultGuardianTestCommonCase {
     function setUp() public virtual override {
         super.setUp();
-        _guardian = _createGuardian(true);
-        super._setSafeGuard(address(_guardian));
     }
 
     function _createGuardian(bool allowSetGuard_) internal virtual override returns (SolvVaultGuardianBase) {
-        return new SolvVaultGuardianForSafe13(safeAccount, _safeMultiSend, governor, allowSetGuard_);
+        return new SolvVaultGuardianForSafe14(safeAccount, _safeMultiSend, governor, allowSetGuard_);
     }
 
-    function _createMulitSend() internal virtual override returns (address) {
+    function _createMultiSend() internal virtual override returns (address) {
         return address(new MultiSend());
     }
 
     function _createGnosisSafeProxyFactory() internal virtual override returns (address) {
-        return address(new GnosisSafeProxyFactory());
+        return address(new SafeProxyFactory());
     }
 
     function _createGnosisSafeSingleton() internal virtual override returns (address) {
-        return address(new GnosisSafeL2());
+        return address(new SafeL2());
     }
 
     function _createSafeProxy(address owner) internal virtual override returns (address) {
@@ -51,8 +49,8 @@ contract SolvVaultGuardianForSafe13Test is SolvVaultGuardianTestCommonCase {
         );
 
         vm.startPrank(owner);
-        GnosisSafeProxy proxy =
-            GnosisSafeProxyFactory(_safeProxyFactory).createProxyWithNonce(_safeSingleton, initializer, block.timestamp);
+        SafeProxy proxy =
+            SafeProxyFactory(_safeProxyFactory).createProxyWithNonce(_safeSingleton, initializer, block.timestamp);
         vm.stopPrank();
         return address(proxy);
     }
@@ -60,7 +58,7 @@ contract SolvVaultGuardianForSafe13Test is SolvVaultGuardianTestCommonCase {
     function _callExecTransaction(address contract_, uint256 value_, bytes memory data_) internal override {
         Enum.Operation operation_ = Enum.Operation.Call;
         bytes memory signature = _getSignature(contract_, value_, data_, operation_);
-        GnosisSafeL2(safeAccount).execTransaction(
+        SafeL2(safeAccount).execTransaction(
             contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature
         );
     }
@@ -74,7 +72,29 @@ contract SolvVaultGuardianForSafe13Test is SolvVaultGuardianTestCommonCase {
         Enum.Operation operation_ = Enum.Operation.Call;
         bytes memory signature = _getSignature(contract_, value_, data_, operation_);
         vm.expectRevert(revertMessage_);
-        GnosisSafeL2(safeAccount).execTransaction(
+        SafeL2(safeAccount).execTransaction(
+            contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature
+        );
+    }
+
+    function _delegatecallExecTransaction(address contract_, uint256 value_, bytes memory data_) internal override {
+        Enum.Operation operation_ = Enum.Operation.DelegateCall;
+        bytes memory signature = _getSignature(contract_, value_, data_, operation_);
+        SafeL2(safeAccount).execTransaction(
+            contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature
+        );
+    }
+
+    function _delegatecallExecTransactionShouldRevert(
+        address contract_,
+        uint256 value_,
+        bytes memory data_,
+        bytes memory revertMessage_
+    ) internal virtual override {
+        Enum.Operation operation_ = Enum.Operation.DelegateCall;
+        bytes memory signature = _getSignature(contract_, value_, data_, operation_);
+        vm.expectRevert(revertMessage_);
+        SafeL2(safeAccount).execTransaction(
             contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), signature
         );
     }
@@ -84,8 +104,8 @@ contract SolvVaultGuardianForSafe13Test is SolvVaultGuardianTestCommonCase {
         view
         returns (bytes memory)
     {
-        uint256 nonce = GnosisSafeL2(safeAccount).nonce();
-        bytes memory txHashData = GnosisSafeL2(safeAccount).encodeTransactionData(
+        uint256 nonce = SafeL2(safeAccount).nonce();
+        bytes memory txHashData = SafeL2(safeAccount).encodeTransactionData(
             contract_, value_, data_, operation_, 0, 0, 0, address(0), payable(address(0)), nonce
         );
         bytes32 txHash = keccak256(txHashData);

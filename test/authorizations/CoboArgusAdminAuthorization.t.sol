@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-import "../intergration/SolvVaultGuardianTestBase.sol";
+import "../integration/SolvVaultGuardianTestBase.sol";
 import "../../src/authorizations/CoboArgusAdminAuthorization.sol";
 
 // contract CoboArgusAdminAuthorizationTest is SolvVaultGuardianTestBase {

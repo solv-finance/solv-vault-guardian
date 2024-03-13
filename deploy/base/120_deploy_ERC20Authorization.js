@@ -4,9 +4,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer } = await getNamedAccounts();
 
   const caller = (await deployments.get('SolvVaultGuardianForSafe13')).address;
-  const safeMultiSendContract = '0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761';
 
-  const tokenReceivers = [
+  const spenders = [];
+
+  const receivers = [
     [
       '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',   // token
       [
@@ -23,15 +24,11 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     ]
   ];
 
-  await deploy('ERC20TransferAuthorization', {
+  await deploy('ERC20Authorization', {
     from: deployer,
-    args: [ 
-      safeMultiSendContract,
-      caller,
-      tokenReceivers
-    ],
+    args: [ caller, spenders, receivers ],
     log: true,
   });
 };
 
-module.exports.tags = ['ERC20TransferAuthorization'];
+module.exports.tags = ['ERC20Authorization'];

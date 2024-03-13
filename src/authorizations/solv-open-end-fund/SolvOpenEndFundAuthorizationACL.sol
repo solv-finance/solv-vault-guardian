@@ -44,14 +44,14 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
     uint256 internal FULL_PERCENTAGE = 1e4;
     uint256 internal REPAY_RATE_SCALAR = 1e8;
 
-    address public solvV3OpenEndFundRedemption;
+    address public solvV3OpenEndFundSft;
 
     EnumerableSet.Bytes32Set internal _repayablePoolIds;
 
-    constructor(address caller_, address solvV3OpenEndFundRedemption_, bytes32[] memory repayablePoolIds_)
+    constructor(address caller_, address solvV3OpenEndFundSft_, bytes32[] memory repayablePoolIds_)
         BaseACL(caller_)
     {
-        solvV3OpenEndFundRedemption = solvV3OpenEndFundRedemption_;
+        solvV3OpenEndFundSft = solvV3OpenEndFundSft_;
         for (uint256 i = 0; i < repayablePoolIds_.length; i++) {
             _repayablePoolIds.add(repayablePoolIds_[i]);
         }
@@ -64,7 +64,7 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
     function repay(uint256 slot_, address currency_, uint256 repayCurrencyAmount_) external view {
         uint256 transactionValue = _txn().value;
         if (currency_ == ETH) {
-            require(transactionValue == repayCurrencyAmount_, "SolvOpenEndFundAuthorizationACL: transaction value too much");
+            require(transactionValue == repayCurrencyAmount_, "SolvOpenEndFundAuthorizationACL: transaction value not matches");
         } else {
             require(transactionValue == 0, "SolvOpenEndFundAuthorizationACL: transaction value not allowed");
         }
@@ -73,8 +73,8 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
     }
 
     function _checkRepayment(uint256 slot, uint256 repayCurrencyAmount) internal view {
-        string memory contractType = ISFTDelegate(solvV3OpenEndFundRedemption).contractType();
-        address concrete = ISFTDelegate(solvV3OpenEndFundRedemption).concrete();
+        string memory contractType = ISFTDelegate(solvV3OpenEndFundSft).contractType();
+        address concrete = ISFTDelegate(solvV3OpenEndFundSft).concrete();
 
         if (keccak256(abi.encodePacked(contractType)) == keccak256(abi.encodePacked("Open Fund Shares"))) {
             require(repayCurrencyAmount <= _shareUnpaidAmount(concrete, slot), "SolvOpenEndFundAuthorizationACL: share over paid");
@@ -88,9 +88,15 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
     }
 
     function _shareUnpaidAmount(address concrete, uint256 slot) internal view virtual returns (uint256) {
+        bytes32 poolId = keccak256(abi.encode(solvV3OpenEndFundSft, slot));
+        require(_repayablePoolIds.contains(poolId), "SolvOpenEndFundAuthorizationACL: pool not repayable");
+
         (, address currency, uint64 valueDate, uint64 maturity,,,) = IOpenFundShareConcrete(concrete).slotBaseInfo(slot);
         (,,, int32 interestRate, bool isInterestRateSet,) = IOpenFundShareConcrete(concrete).slotExtInfo(slot);
         require(isInterestRateSet, "SolvOpenEndFundAuthorizationACL: interest rate not set");
+
+        uint256 slotTotalValue = IOpenFundShareConcrete(concrete).slotTotalValue(slot);
+        uint256 slotCurrencyBalance = IOpenFundShareConcrete(concrete).slotCurrencyBalance(slot);
 
         uint256 scaledFullPercentage = FULL_PERCENTAGE * REPAY_RATE_SCALAR;
         uint256 scaledPositiveInterestRate = 
@@ -100,10 +106,8 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
             scaledFullPercentage + scaledPositiveInterestRate;
 
         uint8 currencyDecimals = currency == ETH ? 18 : IERC20(currency).decimals();
-        uint8 shareDecimals = ISFTDelegate(solvV3OpenEndFundRedemption).valueDecimals();
+        uint8 shareDecimals = ISFTDelegate(solvV3OpenEndFundSft).valueDecimals();
 
-        uint256 slotTotalValue = IOpenFundShareConcrete(concrete).slotTotalValue(slot);
-        uint256 slotCurrencyBalance = IOpenFundShareConcrete(concrete).slotCurrencyBalance(slot);
         uint256 payableAmount = slotTotalValue * repayRate * (10 ** currencyDecimals) / FULL_PERCENTAGE / REPAY_RATE_SCALAR / (10 ** shareDecimals);
         return payableAmount - slotCurrencyBalance;
     }
@@ -111,10 +115,11 @@ contract SolvOpenEndFundAuthorizationACL is BaseACL {
     function _redemptionUnpaidAmount(address concrete, uint256 slot) internal view virtual returns (uint256) {
         (bytes32 poolId,,, uint256 redeemNav) = IOpenFundRedemptionConcrete(concrete).getRedeemInfo(slot);
         require(_repayablePoolIds.contains(poolId), "SolvOpenEndFundAuthorizationACL: pool not repayable");
+        require(redeemNav > 0, "SolvOpenEndFundAuthorizationACL: redeem nav not set");
 
         uint256 slotTotalValue = IOpenFundRedemptionConcrete(concrete).slotTotalValue(slot);
         uint256 slotCurrencyBalance = IOpenFundRedemptionConcrete(concrete).slotCurrencyBalance(slot);
-        uint8 decimals = ISFTDelegate(solvV3OpenEndFundRedemption).valueDecimals();
+        uint8 decimals = ISFTDelegate(solvV3OpenEndFundSft).valueDecimals();
         return slotTotalValue * redeemNav / (10 ** decimals) - slotCurrencyBalance;
     }
 

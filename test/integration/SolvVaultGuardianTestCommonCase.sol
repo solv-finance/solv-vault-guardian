@@ -126,6 +126,18 @@ abstract contract SolvVaultGuardianTestCommonCase is SolvVaultGuardianTestBase {
         vm.stopPrank();
     }
 
+    /**
+     * Test for setModule function
+     */
+    function test_AllowEnableModuleStatus() public virtual {
+        vm.startPrank(governor);
+        _guardian.setEnableModule(true);
+        assertTrue(_guardian.allowEnableModule());
+        _guardian.setEnableModule(false);
+        assertFalse(_guardian.allowEnableModule());
+        vm.stopPrank();
+    }
+
     function test_SetModuleWhenEnable() public virtual {
         vm.startPrank(governor);
         _guardian.setEnableModule(true);
@@ -256,6 +268,9 @@ abstract contract SolvVaultGuardianTestCommonCase is SolvVaultGuardianTestBase {
         vm.stopPrank();
     }
 
+    /**
+     * Tests for updating authorization
+     */
     function test_AddAndRemoveAuthorization() public virtual {
         address target = address(new MockTarget());
         address authorization = address(new MockAuthorization(target, address(_guardian), governor));
@@ -395,6 +410,9 @@ abstract contract SolvVaultGuardianTestCommonCase is SolvVaultGuardianTestBase {
         vm.stopPrank();
     }
 
+    /**
+     * Tests for Multicall
+     */
     function test_GuardianMulticall() public virtual {
         bytes[] memory allData = new bytes[](3);
         allData[0] = abi.encodeWithSelector(bytes4(keccak256("setGuardAllowed(bool)")), true);
@@ -412,5 +430,94 @@ abstract contract SolvVaultGuardianTestCommonCase is SolvVaultGuardianTestBase {
         allData[2] = abi.encodeWithSelector(bytes4(keccak256("setNativeTokenTransferAllowed(bool)")), true);
         vm.expectRevert("Governable: only governor");
         _guardian.multicall(allData);
+    }
+
+    /**
+     * Tests for MultiSend
+     */
+    function test_MultiSend() public virtual {
+        bytes memory tx_1 = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(0));
+        bytes memory tx_2 = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(0));
+        bytes memory multiSendData = abi.encodePacked(
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_1.length), tx_1,
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_2.length), tx_2
+        );
+        bytes memory multiSendTx = abi.encodeWithSelector(bytes4(keccak256("multiSend(bytes)")), multiSendData);
+
+        vm.startPrank(ownerOfSafe);
+        _delegatecallExecTransaction(_safeMultiSend, 0, multiSendTx);
+        vm.stopPrank();
+    }
+
+    function test_NestedMultiSend() public virtual {
+        bytes memory tx_1 = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(0));
+        bytes memory tx_2 = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(0));
+        bytes memory innerMultiSendData = abi.encodePacked(
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_1.length), tx_1,
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_2.length), tx_2
+        );
+        bytes memory innerMultiSendTx = abi.encodeWithSelector(bytes4(keccak256("multiSend(bytes)")), innerMultiSendData);
+
+        bytes memory outerMultiSendData = abi.encodePacked(
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_1.length), tx_1,
+            bytes1(0x01), _safeMultiSend, uint256(0), uint256(innerMultiSendTx.length), innerMultiSendTx
+        );
+        bytes memory outerMultiSendTx = abi.encodeWithSelector(bytes4(keccak256("multiSend(bytes)")), outerMultiSendData);
+
+        vm.startPrank(ownerOfSafe);
+        _delegatecallExecTransaction(_safeMultiSend, 0, outerMultiSendTx);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenAnySendFails() public virtual {
+        bytes memory tx_1 = abi.encodeWithSelector(bytes4(keccak256("setGuard(address)")), address(0));
+        bytes memory tx_2 = abi.encodeWithSelector(bytes4(keccak256("setGuardAllowed(bool)")), true);
+        bytes memory multiSendData = abi.encodePacked(
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_1.length), tx_1,
+            bytes1(0x00), safeAccount, uint256(0), uint256(tx_2.length), tx_2
+        );
+        bytes memory multiSendTx = abi.encodeWithSelector(bytes4(keccak256("multiSend(bytes)")), multiSendData);
+
+        vm.startPrank(ownerOfSafe);
+        _delegatecallExecTransactionShouldRevert(_safeMultiSend, 0, multiSendTx, "SolvVaultGuardian: unauthorized contract");
+        vm.stopPrank();
+    }
+
+    /**
+     * Tests for Authorization Checks
+     */
+    function test_AuthorizationCheckSuccess() public virtual {
+        address target = address(new MockTarget());
+        address authorization = address(new MockAuthorization(target, address(_guardian), governor));
+
+        vm.startPrank(governor);
+        _guardian.setAuthorization(target, authorization);
+        vm.stopPrank();
+
+        vm.startPrank(ownerOfSafe);
+        _callExecTransaction(target, 0, abi.encodeWithSignature("call()"));
+        vm.stopPrank();
+    }
+
+    function test_RevertWhenAuthorizationCheckFail() public virtual {
+        address target = address(new MockTarget());
+        address authorization = address(new MockAuthorization(target, address(_guardian), governor));
+
+        vm.startPrank(governor);
+        _guardian.setAuthorization(target, authorization);
+        vm.stopPrank();
+
+        vm.startPrank(ownerOfSafe);
+        _callExecTransactionShouldRevert(target, 0, abi.encodeWithSignature("failCall()"), "FunctionAuthorization: not allowed function");
+        vm.stopPrank();
+    }
+
+    /**
+     * Tests for invalid tx_data length
+     */
+    function test_RevertWhenDataLengthLessThanFourBytes() public virtual {
+        vm.startPrank(ownerOfSafe);
+        _callExecTransactionShouldRevert(safeAccount, 0, "err", "FunctionAuthorization: invalid txData");
+        vm.stopPrank();
     }
 }

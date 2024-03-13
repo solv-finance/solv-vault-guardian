@@ -27,7 +27,11 @@ contract SolvMasterFundAuthorization is FunctionAuthorization {
         openFundMarketFuncs[2] = "revokeRedeem(bytes32,uint256)";
         _addContractFuncs(openFundMarket_, openFundMarketFuncs);
 
-        address acl = address(new SolvMasterFundAuthorizationACL(address(this), safeAccount_, Governable(caller_).governor(), openFundMarket_, poolIdWhitelist_));
+        address acl = address(
+            new SolvMasterFundAuthorizationACL(
+                address(this), safeAccount_, Governable(caller_).governor(), openFundMarket_, poolIdWhitelist_
+            )
+        );
         _setContractACL(openFundMarket_, acl);
     }
 }

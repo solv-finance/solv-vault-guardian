@@ -8,6 +8,7 @@ import "forge-std/console.sol";
 import "../../src/common/SolvVaultGuardianBase.sol";
 
 abstract contract SolvVaultGuardianTestBase is Test {
+
     address public constant OPEN_END_FUND_MARKET = 0x629aD7Bc14726e9cEA4FCb3A7b363D237bB5dBE8;
     address public constant OPEN_END_FUND_SHARE = 0x22799DAA45209338B7f938edf251bdfD1E6dCB32;
     address public constant OPEN_END_FUND_REDEMPTION = 0xe9bD233b2b34934Fb83955EC15c2ac48F31A0E8c;
@@ -31,7 +32,7 @@ abstract contract SolvVaultGuardianTestBase is Test {
     uint256 internal _privKeyForOwnerOfSafe;
 
     function setUp() public virtual {
-        _safeMultiSend = _createMulitSend();
+        _safeMultiSend = _createMultiSend();
         _safeProxyFactory = _createGnosisSafeProxyFactory();
         _safeSingleton = _createGnosisSafeSingleton();
 
@@ -42,7 +43,7 @@ abstract contract SolvVaultGuardianTestBase is Test {
         permissionlessAccount = makeAddr("PERMISSIONLESS_ACCOUNT");
     }
 
-    function _createMulitSend() internal virtual returns (address);
+    function _createMultiSend() internal virtual returns (address);
     function _createGnosisSafeProxyFactory() internal virtual returns (address);
     function _createGnosisSafeSingleton() internal virtual returns (address);
 
@@ -112,12 +113,29 @@ abstract contract SolvVaultGuardianTestBase is Test {
         _callExecTransactionShouldRevert(to_, amount_, "", revertMsg_);
     }
 
+    function _callExecTransaction(
+        address contract_, 
+        uint256 value_, 
+        bytes memory data_
+    ) internal virtual;
+    
     function _callExecTransactionShouldRevert(
         address contract_,
         uint256 value_,
         bytes memory data_,
         bytes memory revertMessage_
     ) internal virtual;
-
-    function _callExecTransaction(address contract_, uint256 value_, bytes memory data_) internal virtual;
+    
+    function _delegatecallExecTransaction(
+        address contract_, 
+        uint256 value_, 
+        bytes memory data_
+    ) internal virtual;
+    
+    function _delegatecallExecTransactionShouldRevert(
+        address contract_,
+        uint256 value_,
+        bytes memory data_,
+        bytes memory revertMessage_
+    ) internal virtual;
 }

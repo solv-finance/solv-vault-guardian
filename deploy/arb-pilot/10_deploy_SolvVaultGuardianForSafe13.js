@@ -7,12 +7,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const safeGovernor = deployer; //will transfer to safeGovernor after deployed
   const allowSetGuard = true;
 
-  let deployName = "arb-pilot-SolvVaultGuardianForSafe13";
-
+  const deployName = "arb-pilot-SolvVaultGuardianForSafe13";
   const guardian = await deploy(deployName, {
     from: deployer,
     contract: "SolvVaultGuardianForSafe13",
-    args: [safeAccount, safeMultiSendContract, safeGovernor, allowSetGuard],
+    args: [
+      safeAccount, safeMultiSendContract, safeGovernor, allowSetGuard
+    ],
     log: true,
   });
 

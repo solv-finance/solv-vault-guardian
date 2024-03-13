@@ -29,9 +29,9 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     address public immutable safeMultiSend;
 
     bool public allowSetGuard;
+    bool public allowEnableModule;
     bool public allowNativeTokenTransfer;
     mapping(address => bool) public nativeTokenReceiver;
-    bool public allowEnableModule;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
         FunctionAuthorization(address(this), governor_)
@@ -178,7 +178,7 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     {
         Type.TxData memory txData = Type.TxData({from: msgSender, to: to, value: value, data: data});
 
-        //check safe account enableModule
+        // check safe account enableModule
         if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("enableModule(address)"))) {
             require(allowEnableModule, "SolvVaultGuardian: enableModule disabled");
             return;
