@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
 import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
 import {BaseGuard, Enum, Guard} from "safe-contracts-1.4.0/base/GuardManager.sol";
