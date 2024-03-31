@@ -1,34 +1,44 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
 abstract contract Governable {
+    
     event NewGovernor(address indexed previousGovernor, address indexed newGovernor);
+	event NewPendingGovernor(address indexed previousPendingGovernor, address indexed newPendingGovernor);
 
     address public governor;
-    bool public governanceAllowed = true;
+	address public pendingGovernor;
 
-    constructor(address governor_) {
-        _transferGovernance(governor_);
-    }
+    bool public governanceAllowed = true;
 
     modifier onlyGovernor() {
         require(governanceAllowed && governor == msg.sender, "Governable: only governor");
         _;
     }
 
+	modifier onlyPendingGovernor() {
+		require(pendingGovernor == msg.sender, "Governable: only pending governor");
+		_;
+	}
+
+	constructor(address governor_) {
+		governor = governor_;
+        emit NewGovernor(address(0), governor_);
+	}
+
     function forbidGovernance() external onlyGovernor {
         governanceAllowed = false;
     }
 
-    function transferGovernance(address newGovernor_) public onlyGovernor {
-        _transferGovernance(newGovernor_);
+    function transferGovernance(address newPendingGovernor_) external virtual onlyGovernor {
+        emit NewPendingGovernor(pendingGovernor, newPendingGovernor_);
+		pendingGovernor = newPendingGovernor_;
     }
 
-    function _transferGovernance(address newGovernor_) internal {
-        require(newGovernor_ != address(0), "Governable: new governor is the zero address");
-        address oldGovernor = governor;
-        governor = newGovernor_;
-        emit NewGovernor(oldGovernor, newGovernor_);
-    }
+	function acceptGovernance() external virtual onlyPendingGovernor {
+		emit NewGovernor(governor, pendingGovernor);
+		governor = pendingGovernor;
+		delete pendingGovernor;
+	}
 }

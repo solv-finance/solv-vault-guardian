@@ -1,46 +1,45 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
+import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {Type} from "./Type.sol";
+import {IBaseAuthorization} from "./IBaseAuthorization.sol";
 import {BaseAuthorization} from "./BaseAuthorization.sol";
 import {FunctionAuthorization} from "./FunctionAuthorization.sol";
 
 contract SolvVaultGuardianBase is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    struct Authorization {
-        string name;
-        address executor;
-        bool enabled;
-    }
+    event AllowSetGuard(bool isSetGuardAllowed);
+    event SetAuthorization(address indexed to, address indexed authorization);
+    event RemoveAuthorization(address indexed to, address indexed authorization);
+    event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed);
+    event AddNativeTokenReceiver(address indexed receiver);
+    event RemoveNativeTokenReceiver(address indexed receiver);
 
-    event AllowSetGuard(bool isSetGuardAllowed_);
-    event AddAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event RemoveAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event SetAuthorization(string indexed name, address indexed executor_, bool enabled_);
-    event SetNativeTokenTransferAllowed(bool isNativeTokenTransferAllowed_);
-    event AddNativeTokenReceiver(address indexed receiver_);
-    event RemoveNativeTokenReceiver(address indexed receiver_);
+    string public constant SAFE_MULITSEND_FUNC_MULTI_SEND = "multiSend(bytes)";
 
-    Authorization[] public authorizations;
+    EnumerableSet.AddressSet internal _toAddresses;
+    //to => authorization
+    mapping(address => address) public authorizations;
 
     address public immutable safeAccount;
+    address public immutable safeMultiSend;
+
     bool public allowSetGuard;
+    bool public allowEnableModule;
     bool public allowNativeTokenTransfer;
     mapping(address => bool) public nativeTokenReceiver;
 
     constructor(address safeAccount_, address safeMultiSend_, address governor_, bool allowSetGuard_)
-        FunctionAuthorization(safeMultiSend_, address(this), governor_)
+        FunctionAuthorization(address(this), governor_)
     {
         safeAccount = safeAccount_;
+        safeMultiSend = safeMultiSend_;
         _setGuardAllowed(allowSetGuard_);
         _setNativeTokenTransferAllowed(false);
-
-        Authorization memory self =
-            Authorization({name: "SolvVaultGuardian_GeneralAuthorization", executor: address(this), enabled: true});
-        authorizations.push(self);
     }
 
     function setGuardAllowed(bool allowed_) external virtual onlyGovernor {
@@ -50,6 +49,10 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
     function _setGuardAllowed(bool allowed_) internal virtual {
         allowSetGuard = allowed_;
         emit AllowSetGuard(allowed_);
+    }
+
+    function setEnableModule(bool allowed_) external onlyGovernor {
+        allowEnableModule = allowed_;
     }
 
     function setNativeTokenTransferAllowed(bool allowed_) external virtual onlyGovernor {
@@ -75,99 +78,182 @@ contract SolvVaultGuardianBase is FunctionAuthorization {
         }
     }
 
-    function addAuthorizations(Authorization[] calldata authorizations_) external virtual onlyGovernor {
-        for (uint256 i = 0; i < authorizations_.length; i++) {
-            _addAuthorization(authorizations_[i]);
-        }
+    function setAuthorization(address to_, address authorization_) external virtual onlyGovernor {
+        _setAuthorization(to_, authorization_);
     }
 
-    function removeAuthorizations(address[] calldata executors_) external virtual onlyGovernor {
-        for (uint256 i = 0; i < executors_.length; i++) {
-            _removeAuthorization(executors_[i]);
-        }
+    function removeAuthorization(address to_) external virtual onlyGovernor {
+        _removeAuthorization(to_);
     }
 
-    function setAuthorizationEnabled(address executor_, bool enabled_) external virtual onlyGovernor {
-        _setAuthorizationEnabled(executor_, enabled_);
+    function getAllToAddresses() external view virtual returns (address[] memory) {
+        return _toAddresses.values();
     }
 
-    function _addAuthorization(Authorization memory _authorization) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            require(authorizations[i].executor != _authorization.executor, "SolvVaultGuardian: guard already exist");
-        }
-        authorizations.push(_authorization);
-        emit AddAuthorization(_authorization.name, _authorization.executor, _authorization.enabled);
+    function addContractFuncs(address contract_, address acl_, string[] memory funcList_)
+        external
+        virtual
+        onlyGovernor
+    {
+        _addContractFuncsWithACL(contract_, acl_, funcList_);
     }
 
-    function _removeAuthorization(address _executor) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].executor == _executor) {
-                emit RemoveAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
-                authorizations[i] = authorizations[authorizations.length - 1];
-                authorizations.pop();
-                break;
-            }
-        }
+    function removeContractFuncs(address contract_, string[] calldata funcList_) external virtual onlyGovernor {
+        _removeContractFuncs(contract_, funcList_);
     }
 
-    function _setAuthorizationEnabled(address executor_, bool enabled_) internal virtual {
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].executor == executor_) {
-                authorizations[i].enabled = enabled_;
-                emit SetAuthorization(authorizations[i].name, authorizations[i].executor, authorizations[i].enabled);
-                break;
-            }
-        }
+    function addContractFuncsSig(address contract_, address acl_, bytes4[] calldata funcSigList_)
+        external
+        virtual
+        onlyGovernor
+    {
+        _addContractFuncsSigWithACL(contract_, acl_, funcSigList_);
+    }
+
+    function removeContractFuncsSig(address contract_, bytes4[] calldata funcSigList_) external virtual onlyGovernor {
+        _removeContractFuncsSig(contract_, funcSigList_);
+    }
+
+    function setContractACL(address contract_, address acl_) external virtual onlyGovernor {
+        _setContractACL(contract_, acl_);
+    }
+
+    function _setAuthorization(address to_, address authorization_) internal virtual {
+        require(
+            IERC165(authorization_).supportsInterface(type(IBaseAuthorization).interfaceId),
+            "SolvVaultGuardian: invalid authorization"
+        );
+        _toAddresses.add(to_);
+        authorizations[to_] = authorization_;
+        emit SetAuthorization(to_, authorization_);
+    }
+
+    function _removeAuthorization(address to_) internal virtual {
+        require(_toAddresses.contains(to_), "SolvVaultGuardian: authorization not exist");
+        address old = authorizations[to_];
+        delete authorizations[to_];
+        _toAddresses.remove(to_);
+        emit RemoveAuthorization(to_, old);
     }
 
     function _checkSafeTransaction(address to, uint256 value, bytes calldata data, address msgSender)
         internal
         virtual
     {
-        if (to == safeAccount && data.length == 0) {
-            return;
+        if (data.length == 0) {
+            return _checkNativeTransfer(to, value);
         }
+
+        if (data.length < 4) {
+            revert("FunctionAuthorization: invalid txData");
+        }
+
+        bytes4 selector = _getSelector(data);
+
+        if (to == safeMultiSend && selector == bytes4(keccak256(bytes(SAFE_MULITSEND_FUNC_MULTI_SEND)))) {
+            return _checkMultiSendTransactions(to, value, data, msgSender);
+        } else {
+            return _checkSingleTransaction(to, value, data, msgSender);
+        }
+    }
+
+    function _checkMultiSendTransactions(address, /* to */ uint256, /* value */ bytes calldata data, address msgSender)
+        internal
+        virtual
+    {
+        uint256 multiSendDataLength = uint256(bytes32(data[4 + 32:4 + 32 + 32]));
+        bytes calldata multiSendData = data[4 + 32 + 32:4 + 32 + 32 + multiSendDataLength];
+        uint256 startIndex = 0;
+        while (startIndex < multiSendData.length) {
+            (address innerTo, uint256 innerValue, bytes calldata innerData, uint256 endIndex) =
+                _unpackMultiSend(multiSendData, startIndex);
+            _checkSafeTransaction(innerTo, innerValue, innerData, msgSender);
+            startIndex = endIndex;
+        }
+    }
+
+    function _checkSingleTransaction(address to, uint256 value, bytes calldata data, address msgSender)
+        internal
+        virtual
+    {
         Type.TxData memory txData = Type.TxData({from: msgSender, to: to, value: value, data: data});
 
-        //check safe account setGuard
-        if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
+        // check safe account enableModule
+        if (to == safeAccount && data.length >= 4 && bytes4(data[0:4]) == bytes4(keccak256("enableModule(address)"))) {
+            require(allowEnableModule, "SolvVaultGuardian: enableModule disabled");
+            return;
+        }
+
+        // check safe account setGuard
+        if (to == safeAccount && bytes4(data[0:4]) == bytes4(keccak256("setGuard(address)"))) {
             require(allowSetGuard, "SolvVaultGuardian: setGuard disabled");
             return;
         }
 
-        //check authorizations check
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            if (authorizations[i].enabled) {
-                Type.CheckResult memory result =
-                    BaseAuthorization(authorizations[i].executor).authorizationCheckTransaction(txData);
-                //if return true, then passed
-                if (result.success) {
-                    return;
-                }
+        // authorization check
+        if (authorizations[to] != address(0)) {
+            Type.CheckResult memory result = BaseAuthorization(authorizations[to]).authorizationCheckTransaction(txData);
+            if (!result.success) {
+                revert(result.message);
             }
+            return;
         }
 
-        revert("SolvVaultGuardian: checkTransaction failed");
+        // general config check
+        if (_contracts.contains(to)) {
+            Type.CheckResult memory result = BaseAuthorization(address(this)).authorizationCheckTransaction(txData);
+            if (!result.success) {
+                revert(result.message);
+            }
+            return;
+        }
+
+        revert("SolvVaultGuardian: unauthorized contract");
     }
 
-    function _checkNativeTransfer(address to_, uint256 /* value_ */ )
-        internal
-        view
-        virtual
-        override
-        returns (Type.CheckResult memory result_)
-    {
+    function _checkNativeTransfer(address to, uint256 /* value_ */ ) internal view virtual {
+        if (to == safeAccount) {
+            return;
+        }
         if (allowNativeTokenTransfer) {
-            if (nativeTokenReceiver[to_]) {
-                result_.success = true;
-                result_.message = "SolvVaultGuardian: native token transfer allowed";
+            if (nativeTokenReceiver[to]) {
+                return;
             } else {
-                result_.success = false;
-                result_.message = "SolvVaultGuardian: native token receiver not allowed";
+                revert("SolvVaultGuardian: native token receiver not allowed");
             }
         } else {
-            result_.success = false;
-            result_.message = "SolvVaultGuardian: native token transfer not allowed";
+            revert("SolvVaultGuardian: native token transfer not allowed");
         }
+    }
+
+    function _unpackMultiSend(bytes calldata transactions, uint256 startIndex)
+        internal
+        pure
+        virtual
+        returns (address to, uint256 value, bytes calldata data, uint256 endIndex)
+    {
+        uint256 offset = 0;
+        uint256 length = 1;
+        offset += length;
+
+        // address 20 bytes
+        length = 20;
+        to = address(bytes20(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // value 32 bytes
+        length = 32;
+        value = uint256(bytes32(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // datalength 32 bytes
+        length = 32;
+        uint256 dataLength = uint256(bytes32(transactions[startIndex + offset:startIndex + offset + length]));
+        offset += length;
+
+        // data
+        data = transactions[startIndex + offset:startIndex + offset + dataLength];
+
+        endIndex = startIndex + offset + dataLength;
     }
 }

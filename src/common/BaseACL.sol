@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
+import {IERC165} from "openzeppelin/utils/introspection/IERC165.sol";
 import {Type} from "./Type.sol";
+import {IBaseACL} from "./IBaseACL.sol";
 
-abstract contract BaseACL {
+abstract contract BaseACL is IBaseACL, IERC165 {
     address public caller;
     address public safeAccount;
     address public solvGuard;
@@ -18,6 +20,10 @@ abstract contract BaseACL {
     modifier onlyCaller() virtual {
         require(msg.sender == caller, "onlyCaller");
         _;
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IERC165).interfaceId || interfaceId == type(IBaseACL).interfaceId;
     }
 
     function preCheck(address from_, address to_, bytes calldata data_, uint256 value_)

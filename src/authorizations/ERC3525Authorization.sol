@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
 import {EnumerableSet} from "openzeppelin/utils/structs/EnumerableSet.sol";
 import {Type} from "../common/Type.sol";
 import {FunctionAuthorization} from "../common/FunctionAuthorization.sol";
 import {Governable} from "../utils/Governable.sol";
 
-contract ERC3525ApproveAuthorization is FunctionAuthorization {
+contract ERC3525Authorization is FunctionAuthorization {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    string public constant NAME = "SolvVaultGuardian_ERC3525ApproveAuthorization";
+    string public constant NAME = "SolvVaultGuardian_ERC3525Authorization";
     int256 public constant VERSION = 1;
 
     string internal constant ERC3525_APPROVE_ID_FUNC = "approve(address,uint256)";
     string internal constant ERC3525_APPROVE_VALUE_FUNC = "approve(uint256,address,uint256)";
-    
+    bytes4 internal constant APPROVE_ID_SELECTOR = 0x095ea7b3;
+    bytes4 internal constant APPROVE_VALUE_SELECTOR = 0x8cb0a511;
+
     event TokenAdded(address indexed token);
     event TokenRemoved(address indexed token);
     event TokenSpenderAdded(address indexed token, address indexed spender);
@@ -31,8 +33,8 @@ contract ERC3525ApproveAuthorization is FunctionAuthorization {
         address[] spenders;
     }
 
-    constructor(address safeMultiSendContract_, address caller_, TokenSpenders[] memory tokenSpenders_)
-        FunctionAuthorization(safeMultiSendContract_, caller_, Governable(caller_).governor())
+    constructor(address caller_, TokenSpenders[] memory tokenSpenders_)
+        FunctionAuthorization(caller_, Governable(caller_).governor())
     {
         _approveFuncs = new string[](2);
         _approveFuncs[0] = ERC3525_APPROVE_ID_FUNC;
@@ -50,42 +52,38 @@ contract ERC3525ApproveAuthorization is FunctionAuthorization {
 
     function _addTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
         for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
-            _addTokenSpenders(_tokenSpendersList[i]);
+            _addTokenSpenders(_tokenSpendersList[i].token, _tokenSpendersList[i].spenders);
         }
     }
 
     function _removeTokenSpenders(TokenSpenders[] memory _tokenSpendersList) internal virtual {
         for (uint256 i = 0; i < _tokenSpendersList.length; i++) {
-            _removeTokenSpenders(_tokenSpendersList[i]);
+            _removeTokenSpenders(_tokenSpendersList[i].token, _tokenSpendersList[i].spenders);
         }
     }
 
-    function _addTokenSpenders(TokenSpenders memory _tokenSpenders) internal virtual {
-        address token = _tokenSpenders.token;
-        address[] memory spenders = _tokenSpenders.spenders;
-        if (_tokenSet.add(token)) {
-            _addContractFuncs(token, _approveFuncs);
-            emit TokenAdded(token);
+    function _addTokenSpenders(address _token, address[] memory _spenders) internal virtual {
+        if (_tokenSet.add(_token)) {
+            _addContractFuncs(_token, _approveFuncs);
+            emit TokenAdded(_token);
         }
-        for (uint256 i = 0; i < spenders.length; i++) {
-            if (_allowedTokenSpenders[token].add(spenders[i])) {
-                emit TokenSpenderAdded(token, spenders[i]);
+        for (uint256 i = 0; i < _spenders.length; i++) {
+            if (_allowedTokenSpenders[_token].add(_spenders[i])) {
+                emit TokenSpenderAdded(_token, _spenders[i]);
             }
         }
     }
 
-    function _removeTokenSpenders(TokenSpenders memory _tokenSpenders) internal virtual {
-        address token = _tokenSpenders.token;
-        address[] memory spenders = _tokenSpenders.spenders;
-        for (uint256 i = 0; i < spenders.length; i++) {
-            if (_allowedTokenSpenders[token].remove(spenders[i])) {
-                emit TokenSpenderAdded(token, spenders[i]);
+    function _removeTokenSpenders(address _token, address[] memory _spenders) internal virtual {
+        for (uint256 i = 0; i < _spenders.length; i++) {
+            if (_allowedTokenSpenders[_token].remove(_spenders[i])) {
+                emit TokenSpenderAdded(_token, _spenders[i]);
             }
         }
-        if (_allowedTokenSpenders[token].length() == 0) {
-            if (_tokenSet.remove(token)) {
-                _removeContractFuncs(token, _approveFuncs);
-                emit TokenRemoved(token);
+        if (_allowedTokenSpenders[_token].length() == 0) {
+            if (_tokenSet.remove(_token)) {
+                _removeContractFuncs(_token, _approveFuncs);
+                emit TokenRemoved(_token);
             }
         }
     }
@@ -98,25 +96,27 @@ contract ERC3525ApproveAuthorization is FunctionAuthorization {
         return _allowedTokenSpenders[token].values();
     }
 
-    function _checkSingleTx(address from_, address to_, bytes calldata data_, uint256 value_)
+    function _authorizationCheckTransaction(Type.TxData calldata txData_)
         internal
         virtual
         override
         returns (Type.CheckResult memory result)
     {
-        result = super._checkSingleTx(from_, to_, data_, value_);
+        result = super._authorizationCheckTransaction(txData_);
         if (result.success) {
-            if (data_.length == 68) {  // approve id
-                (address spender, /* uint256 tokenId */) = abi.decode(data_[4:], (address, uint256));
-                if (!_allowedTokenSpenders[to_].contains(spender)) {
+            bytes4 selector = _getSelector(txData_.data);
+            if (selector == APPROVE_ID_SELECTOR) {
+                (address spender, /* uint256 tokenId */ ) = abi.decode(txData_.data[4:], (address, uint256));
+                if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
-                    result.message = "ERC3525ApproveAuthorization: ERC3525 id spender not allowed";
+                    result.message = "ERC3525Authorization: ERC3525 id spender not allowed";
                 }
-            } else {  // approve value
-                (/* uint256 tokenId */, address spender, /* uint256 allowance */) = abi.decode(data_[4:], (uint256, address, uint256));
-                if (!_allowedTokenSpenders[to_].contains(spender)) {
+            } else if (selector == APPROVE_VALUE_SELECTOR) {
+                ( /* uint256 tokenId */ , address spender, /* uint256 allowance */ ) =
+                    abi.decode(txData_.data[4:], (uint256, address, uint256));
+                if (!_allowedTokenSpenders[txData_.to].contains(spender)) {
                     result.success = false;
-                    result.message = "ERC3525ApproveAuthorization: ERC3525 value spender not allowed";
+                    result.message = "ERC3525Authorization: ERC3525 value spender not allowed";
                 }
             }
         }
