@@ -12,7 +12,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     "0x32228ab607d64bb5bfc0cd9720f05b0e6c7e4a0801a25e6c2b7f03d5d01e8219",
   ];
 
-  const deployName = "merlin-solvBTC-SolvOpenEndFundAuthorization";
+  const deployName = "merlin-solvBTCTest-SolvOpenEndFundAuthorization";
   const authorization = await deploy(deployName, {
     from: deployer,
     contract: "SolvOpenEndFundAuthorization",
