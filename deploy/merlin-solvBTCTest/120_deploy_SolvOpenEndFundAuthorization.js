@@ -18,6 +18,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     contract: "SolvOpenEndFundAuthorization",
     args: [caller, openEndFundShare, openEndFundRedemption, repayablePoolIds],
     log: true,
+    gasPrice: 0.05e9,
   });
 
   console.log(`${deployName} deployed at ${authorization.address}`);

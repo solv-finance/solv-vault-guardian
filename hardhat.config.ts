@@ -55,11 +55,16 @@ module.exports = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    merlin: {
+      url: process.env.MERLIN_URL || ` https://rpc.merlinchain.io`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
 
   etherscan: {
     apiKey: {
-      mantle: 'mantle',
+      mantle: "mantle",
       arb: process.env.ARBISCAN_API_KEY,
     },
     customChains: [
@@ -68,10 +73,10 @@ module.exports = {
         chainId: 5000,
         urls: {
           apiURL: "https://explorer.mantle.xyz/api",
-          browserURL: "https://explorer.mantle.xyz/"
-        }
-      }
-    ]
+          browserURL: "https://explorer.mantle.xyz/",
+        },
+      },
+    ],
   },
 
   preprocess: {

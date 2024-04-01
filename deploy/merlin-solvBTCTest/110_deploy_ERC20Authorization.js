@@ -25,6 +25,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     contract: "ERC20Authorization",
     args: [caller, spenders, receivers],
     log: true,
+    gasPrice: 0.05e9,
   });
 
   console.log(`${deployName} deployed at ${authorization.address}`);

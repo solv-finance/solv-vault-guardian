@@ -13,6 +13,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     contract: "SolvVaultGuardianForSafe13",
     args: [safeAccount, safeMultiSendContract, safeGovernor, allowSetGuard],
     log: true,
+    gasPrice: 0.05e9,
   });
 
   console.log(`${deployName} deployed at ${guardian.address}`);

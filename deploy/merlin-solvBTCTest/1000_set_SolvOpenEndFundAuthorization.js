@@ -31,14 +31,19 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   );
   const guardian = guardianFactory.attach(guardianAddress);
 
-  await guardian.setAuthorization(mBTC, erc20AuthorizationAddress);
+  await guardian.setAuthorization(mBTC, erc20AuthorizationAddress, {
+    gasPrice: 0.05e9,
+  });
   console.log(
     `set authorization ${erc20AuthorizationAddress} for contract ${mBTC}`
   );
 
   await guardian.setAuthorization(
     openEndFundShare,
-    openEndFundAuthorizationAddress
+    openEndFundAuthorizationAddress,
+    {
+      gasPrice: 0.05e9,
+    }
   );
   console.log(
     `set authorization ${openEndFundAuthorizationAddress} for contract ${openEndFundShare}`
@@ -46,13 +51,18 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   await guardian.setAuthorization(
     openEndFundRedemption,
-    openEndFundAuthorizationAddress
+    openEndFundAuthorizationAddress,
+    {
+      gasPrice: 0.05e9,
+    }
   );
   console.log(
     `set authorization ${openEndFundAuthorizationAddress} for contract ${openEndFundRedemption}`
   );
 
-  await guardian.transferGovernance(safeGovernor);
+  await guardian.transferGovernance(safeGovernor, {
+    gasPrice: 0.05e9,
+  });
   console.log("set authorizations success");
 };
 
