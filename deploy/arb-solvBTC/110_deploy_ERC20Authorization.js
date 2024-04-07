@@ -10,6 +10,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       [
         "0xD20078BD38AbC1378cB0a3F6F0B359c4d8a7b90E", // OpenEndFundShare
         "0x5d931F572df1cd730F1ADf3F9Eb5B218D2cE641f", // OpenEndFundRedemption
+        "0x629aD7Bc14726e9cEA4FCb3A7b363D237bB5dBE8", // OpenEndFundMarket
       ],
     ],
   ];
