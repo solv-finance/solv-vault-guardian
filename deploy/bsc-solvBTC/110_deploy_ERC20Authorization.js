@@ -14,8 +14,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     ],
   ];
 
-  //no transfer receiver
-  const receivers = [];
+  const receivers = [
+    [
+      "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", // BTCB
+      [
+        "", // receiver
+      ],
+    ]
+  ];
 
   const deployName = "bsc-solvBTC-ERC20Authorization";
   const authorization = await deploy(deployName, {

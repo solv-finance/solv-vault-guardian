@@ -10,7 +10,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     "0x488def4a346b409d5d57985a160cd216d29d4f555e1b716df4e04e2374d2d9f6",
   ];
 
-  const deployName = "arb-solvBTC-SolvFundOfFundSftAuthorization";
+  const deployName = "arb-solvBTC-SolvOpenEndFundAuthorization";
   const authorization = await deploy(deployName, {
     from: deployer,
     contract: "SolvOpenEndFundAuthorization",
@@ -21,4 +21,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   console.log(`${deployName} deployed at ${authorization.address}`);
 };
 
-module.exports.tags = ["arb-solvBTC-SolvFundOfFundSftAuthorization"];
+module.exports.tags = ["arb-solvBTC-SolvOpenEndFundAuthorization"];
