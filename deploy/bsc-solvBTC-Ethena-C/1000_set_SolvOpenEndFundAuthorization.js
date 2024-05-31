@@ -12,17 +12,17 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   const safeGovernor = "0x312846e1049963969990EF7dbB5e5f7a37c4Ac6C";
   const guardianAddress = (
-    await deployments.get("bsc-solvBTC-SolvVaultGuardianForSafe13")
+    await deployments.get("bsc-solvBTC-Ethena-C-SolvVaultGuardianForSafe13")
   ).address;
 
-  const openEndFundShare = "0x744697899058b32d84506AD05DC1f3266603aB8A";
-  const openEndFundRedemption = "0xAa295fF24c1130A4ceb07842860a8fD7CB9de9Cd";
+  const openEndFundShare = "0xb816018e5d421e8b809a4dc01af179d86056ebdf";
+  const openEndFundRedemption = "0xe16cec2f385ea7a382772334a44506a865f98562";
   const openEndFundAuthorizationAddress = (
-    await deployments.get("bsc-solvBTC-SolvOpenEndFundAuthorization")
+    await deployments.get("bsc-solvBTC-Ethena-C-SolvOpenEndFundAuthorization")
   ).address;
 
   const erc20AuthorizationAddress = (
-    await deployments.get("bsc-solvBTC-ERC20Authorization")
+    await deployments.get("bsc-solvBTC-Ethena-C-ERC20Authorization")
   ).address;
 
   const guardianFactory = await ethers.getContractFactory(
@@ -56,4 +56,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   console.log("set authorizations success");
 };
 
-module.exports.tags = ["bsc-solvBTC-set-SolvVaultGuardianForSafe13"];
+module.exports.tags = ["bsc-solvBTC-Ethena-C-set-SolvVaultGuardianForSafe13"];

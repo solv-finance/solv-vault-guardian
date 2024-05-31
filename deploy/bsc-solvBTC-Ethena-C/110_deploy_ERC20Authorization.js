@@ -3,15 +3,15 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deployer } = await getNamedAccounts();
 
   const caller = (
-    await deployments.get("bsc-solvBTC-SolvVaultGuardianForSafe13")
+    await deployments.get("bsc-solvBTC-Ethena-C-SolvVaultGuardianForSafe13")
   ).address;
 
   const spenders = [
     [
       "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", // BTCB
       [
-        "0x744697899058b32d84506AD05DC1f3266603aB8A", // OpenEndFundShare
-        "0xAa295fF24c1130A4ceb07842860a8fD7CB9de9Cd", // OpenEndFundRedemption
+        "0xb816018e5d421e8b809a4dc01af179d86056ebdf", // OpenEndFundShare
+        "0xe16cec2f385ea7a382772334a44506a865f98562", // OpenEndFundRedemption
       ],
     ],
   ];
@@ -20,12 +20,12 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     [
       "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", // BTCB
       [
-        "0xcA27Fc72bcEAcAB6d4683a3C60e8c8E3C79EA140", // receiver
+        "0x667cc3145f9f63bd796a1a62ef504aaa160550e5", // receiver
       ],
     ],
   ];
 
-  const deployName = "bsc-solvBTC-ERC20Authorization";
+  const deployName = "bsc-solvBTC-Ethena-C-ERC20Authorization";
   const authorization = await deploy(deployName, {
     from: deployer,
     contract: "ERC20Authorization",
@@ -36,4 +36,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   console.log(`${deployName} deployed at ${authorization.address}`);
 };
 
-module.exports.tags = ["bsc-solvBTC-ERC20Authorization"];
+module.exports.tags = ["bsc-solvBTC-Ethena-C-ERC20Authorization"];

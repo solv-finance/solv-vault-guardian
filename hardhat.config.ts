@@ -50,6 +50,11 @@ module.exports = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    bsc: {
+      url: process.env.BSC_URL || `https://bsc-dataseed.binance.org/`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     mantle: {
       url: process.env.MANTLE_TESTNET_URL || `https://rpc.mantle.xyz/`,
       accounts:
