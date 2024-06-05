@@ -71,6 +71,7 @@ module.exports = {
     apiKey: {
       mantle: "mantle",
       arb: process.env.ARBISCAN_API_KEY,
+      bsc: process.env.BSCSCAN_API_KEY,
     },
     customChains: [
       {
@@ -79,6 +80,14 @@ module.exports = {
         urls: {
           apiURL: "https://explorer.mantle.xyz/api",
           browserURL: "https://explorer.mantle.xyz/",
+        },
+      },
+      {
+        network: "arb",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://explorer.arbitrum.io",
         },
       },
     ],
