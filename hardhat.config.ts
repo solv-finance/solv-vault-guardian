@@ -33,6 +33,10 @@ module.exports = {
     deployer: 0,
   },
 
+  sourcify: {
+    enabled: false,
+  },
+
   networks: {
     hardhat: {},
     localhost: {},
@@ -65,13 +69,21 @@ module.exports = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    mainnet: {
+      url:
+        process.env.GOERLI_URL ||
+        `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
 
   etherscan: {
     apiKey: {
       mantle: "mantle",
-      arb: process.env.ARBISCAN_API_KEY,
+      arb: process.env.ARBSCAN_API_KEY,
       bsc: process.env.BSCSCAN_API_KEY,
+      mainnet: process.env.ETHERSCAN_API_KEY,
     },
     customChains: [
       {
