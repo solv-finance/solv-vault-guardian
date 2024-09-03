@@ -12,7 +12,7 @@ Solv Vault Guardian functions as the guardian within the [Guard mechanism](https
 
 https://app.safe.global/
 
-1. Set Environment Variables
+3. Set Environment Variables
 
 ```bash
 export SAFE_ACCOUNT= # Safe Wallet Address
