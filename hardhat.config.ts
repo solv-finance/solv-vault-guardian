@@ -40,17 +40,17 @@ module.exports = {
   networks: {
     hardhat: {},
     localhost: {},
-    goerli: {
+    sepolia: {
       url:
-        process.env.GOERLI_URL ||
-        `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
+        process.env.SEPOLIA_URL ||
+        `https://sepolia.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
-    arb: {
+    mainnet: {
       url:
-        process.env.ARB_URL ||
-        `https://arb.getblock.io/${process.env.GETBLOCK_KEY}/mainnet/`,
+        process.env.GOERLI_URL ||
+        `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
@@ -66,13 +66,6 @@ module.exports = {
     },
     merlin: {
       url: process.env.MERLIN_URL || ` https://rpc.merlinchain.io`,
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    },
-    mainnet: {
-      url:
-        process.env.GOERLI_URL ||
-        `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
