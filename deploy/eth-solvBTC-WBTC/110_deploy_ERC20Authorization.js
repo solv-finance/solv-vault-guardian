@@ -1,15 +1,19 @@
+const { ethers } = require("hardhat");
+
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
+
+  const guardianConfig = require('./00_export_VaultGuardianConfig');
 
   const caller = (await deployments.get("eth-solvBTC-WBTC-SolvVaultGuardianForSafe13")).address;
 
   const spenders = [
     [
-      "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC
+      guardianConfig.ERC20, // WBTC
       [
-        "0x7d6C3860B71CF82e2e1E8d5D104CF77f5B84f93a", // OpenEndFundShare
-        "0xD3BA838B3e32654aD2Ad1741d2483d807c49e6F9", // OpenEndFundRedemption
+        guardianConfig.ShareSFT,
+        guardianConfig.RedemptionSFT
       ],
     ],
   ];
@@ -21,10 +25,19 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     from: deployer,
     contract: "ERC20Authorization",
     args: [caller, spenders, receivers],
+    skipIfAlreadyDeployed: true,
     log: true,
   });
 
-  console.log(`${deployName} deployed at ${authorization.address}`);
+  const AuthorizationFactory = await ethers.getContractFactory("ERC20Authorization");
+  const authorizationInstance = AuthorizationFactory.attach(authorization.address);
+  const currentGovernor = await authorizationInstance.governor();
+  const pendingGovernor = await authorizationInstance.pendingGovernor();
+  if (currentGovernor != guardianConfig.GuardianGovernor && pendingGovernor != guardianConfig.GuardianGovernor) {
+    const transferGovernanceTx = await authorizationInstance.transferGovernance(guardianConfig.GuardianGovernor);
+    await transferGovernanceTx.wait();
+    console.log(`Governance transferred to ${guardianConfig.GuardianGovernor}`);
+  }
 };
 
 module.exports.tags = ["eth-solvBTC-WBTC-ERC20Authorization"];
