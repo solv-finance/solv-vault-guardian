@@ -512,6 +512,19 @@ abstract contract SolvVaultGuardianTestCommonCase is SolvVaultGuardianTestBase {
         vm.stopPrank();
     }
 
+    function test_RevertWhenAuthorizationCheckDelegateCallFail() public virtual {
+        address target = address(new MockTarget());
+        address authorization = address(new MockAuthorization(target, address(_guardian), governor));
+
+        vm.startPrank(governor);
+        _guardian.setAuthorization(target, authorization);
+        vm.stopPrank();
+
+        vm.startPrank(ownerOfSafe);
+        _delegatecallExecTransactionShouldRevert(target, 0, abi.encodeWithSignature("failCall()"), "FunctionAuthorization: not allowed function");
+        vm.stopPrank();
+    }
+
     /**
      * Tests for invalid tx_data length
      */
