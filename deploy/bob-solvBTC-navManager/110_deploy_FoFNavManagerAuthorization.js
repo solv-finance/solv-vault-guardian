@@ -7,6 +7,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const openFundMarket = "0xf5a247157656678398B08d3eFa1673358C611A3f";
   const authorizedPoolIds = [
     "0x5664520240a46b4b3e9655c20cc3f9e08496a9b746a478e476ae3e04d6c8fc31",
+    "0x682cfd3ff70ea18c1e13a2d4410a290373e1eccf90d635ee4c2e323138522400"
   ];
 
   const deployName = "bob-solvBTC-FoFNavManagerAuthorization";
